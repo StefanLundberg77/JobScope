@@ -204,6 +204,21 @@ const profileData = {
   ],
   projects: [
     {
+      name: "PNS – Kassaapplikation (Point of Sale)",
+      description:
+        "Modern kassaapplikation (webbaserat POS-system) optimerad för mobil och surfplatta (iOS & Android). Utvecklad med FastAPI (Python) på backend och Vanilla JavaScript på frontend. Snabb touch-användning med lokal datalagring via SQLite och ett responsivt realtidsgränssnitt.",
+      link: "https://www.linkedin.com/in/stefan-lundberg-30055584/overlay/Project/85107334/treasury/?profileId=ACoAABHg9HABvho0vVX3UtkkMYOn5Nmn70wf4IU",
+      techStack: [
+        "Python",
+        "FastAPI",
+        "JavaScript",
+        "SQLite",
+        "REST API",
+        "Touch UI / Mobile",
+        "Fullstack"
+      ]
+    },
+    {
       name: "Examensarbete: Multimodal RAG för Kassasystem",
       description:
         "En jämförande teknisk analys mellan lokal Open Source-arkitektur och Azure Cloud för bildbaserad produktregistrering i realtid via kamera (OPA 24). Utvärderade svarstider (latency), molndriftskostnader, feltolerans och dataintegritet.",

@@ -11,7 +11,7 @@ async function runScan() {
   console.log("   Söker i LinkedIn (offentlig) & Arbetsförmedlingen...");
   console.log("==========================================");
 
-  const endpoint = process.env.JOBSCOPE_URL || process.env.WORKALOGIC_URL || "http://localhost:3000/api/jobs/scan";
+  const endpoint = process.env.JOBSCOPE_URL || "http://localhost:3000/api/jobs/scan";
 
   try {
     const res = await fetch(endpoint, {

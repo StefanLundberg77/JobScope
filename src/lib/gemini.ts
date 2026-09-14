@@ -201,11 +201,27 @@ Erfarenheter: ${JSON.stringify(
       achievements: e.achievements,
     }))
   )}
+Projekt & Portfolio: ${JSON.stringify(
+    (profile.projects || []).map((p) => ({
+      name: p.name,
+      description: p.description,
+      techStack: p.techStack,
+      link: p.link,
+    }))
+  )}
+Utbildning: ${JSON.stringify(
+    (profile.education || []).map((u) => ({
+      school: u.school,
+      degree: u.degree,
+      fieldOfStudy: u.fieldOfStudy,
+      description: u.description,
+    }))
+  )}
 
 Instruktioner:
-- Beräkna en realistisk matchningsprocent (0-100) baserat på kärnkrav, relevanta teknologier och erfarenhetsnivå.
-- Identifiera starka matchningar (kompetenser kandidaten har som annonsen uttryckligen söker).
-- Identifiera överförbara färdigheter (kandidaten har snarlik erfarenhet som kan appliceras).
+- Beräkna en realistisk matchningsprocent (0-100) baserat på kärnkrav, relevanta teknologier och kandidatens samlade kompetens (inklusive arbetslivserfarenhet, praktiska portfolioprojekt och utbildning).
+- Identifiera starka matchningar (kompetenser och teknologier kandidaten har som annonsen uttryckligen söker).
+- Identifiera överförbara färdigheter (kandidaten har snarlik erfarenhet eller projekt som kan appliceras).
 - Identifiera saknade nyckelord/krav som kandidaten antingen saknar eller inte har explicit nämnt.
 - Ge 2-4 konkreta råd för hur ansökan bäst vinklas för denna roll.
 
@@ -254,7 +270,8 @@ STRIKTA ETISKA REGLER (SANNINGSBARRIÄR):
    - Omformulera erfarenhetspunkter så att de lyfter fram relevanta ansvarsområden och teknologier med samma terminologi som annonsen.
    - Prioritera och sortera färdigheter så att de kompetenser som efterfrågas mest hamnar främst.
    - Skriva en vass, skräddarsydd sammanfattning (profile summary) som direkt adresserar arbetsgivarens behov och kandidatens motivation för just denna roll.
-   - Skriva ett engagerat, personligt och välformulerat personligt brev (på svenska) som bygger en bro mellan kandidatens verkliga meriter och arbetsgivarens mål.
+   - Aktivt referera till och lyfta fram relevanta projekt ur kandidatens portfolio/examensarbete (t.ex. PNS, Examensarbetet, JobScope, No Final Run) i det personliga brevet när dessa matchar arbetsgivarens efterfrågade teknologier eller domän.
+   - Skriva ett engagerat, personligt och välformulerat personligt brev (på svenska) som bygger en bro mellan kandidatens verkliga meriter, portfolioprojekt och arbetsgivarens mål.
 
 JOBBANNONS:
 Titel: ${job.title}
