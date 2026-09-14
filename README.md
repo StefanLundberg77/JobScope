@@ -36,7 +36,7 @@ JobScope är en modern webbapplikation byggd för intelligent bevakning av IT-ar
 
 - **Fullstack-ramverk**: Next.js 16 (App Router, React 19, TypeScript)
 - **Styling**: Tailwind CSS (med stöd för mörkt läge och utskriftsmedia)
-- **Databas & ORM**: SQLite (`dev.db`) med Prisma 7 och `@prisma/adapter-better-sqlite3`
+- **Databas & ORM**: SQLite (`dev.db`) med Prisma 7 och `@prisma/adapter-libsql`
 - **AI-motor**: Google Gemini API via `@google/generative-ai`
 - **Öppna API:er**: Arbetsförmedlingen JobTech Dev Search API
 
