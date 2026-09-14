@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Workalogic
 
-## Getting Started
+Workalogic är en modern webbapplikation byggd för att effektivisera jobbsökning och ansökningsprocessen. Appen söker och bevakar relevanta jobbannonser via officiella öppna API:er, analyserar kravprofiler och optimerar ditt befintliga CV och personliga brev per specifik annons, med full transparens och mänsklig kontroll (human-in-the-loop).
 
-First, run the development server:
+## Huvudfunktioner
 
+1. **Jobbsökning & Filter**:
+   - Integrerad direkt mot Arbetsförmedlingens öppna JobTech Dev Search API (inga API-nycklar krävs för sökning).
+   - Smarta snabbfilter för Göteborg, pendlingsavstånd (Mölndal, Kungälv, Kungsbacka, Borås etc.), Västra Götaland, distansarbete (remote) samt hela Sverige.
+   - Möjlighet att klistra in en webblänk eller råtext från externa källor som LinkedIn, Indeed eller specifika karriärsidor.
+
+2. **Master-CV & AI-Import**:
+   - Central profil som fungerar som enda sanningskälla för din erfarenhet och utbildning.
+   - Stöd för att klistra in råtext från ditt befintliga CV, LinkedIn-profil eller portfolio och automatiskt strukturera datan med hjälp av AI.
+
+3. **AI-driven Matchning & CV-Optimering**:
+   - ATS-analys: matchningsprocent, starka träffar, överförbara färdigheter och saknade nyckelord.
+   - Skräddarsydd profilpitch och omformulerade erfarenhetspunkter (STAR-metod) som lyfter fram dina faktiska prestationer i linje med annonsens språk.
+   - Generering av personligt brev anpassat till rollen och företaget.
+   - Fullständig diff-granskning (original vs optimerat) med förklarande motiveringar för varje förändring.
+   - Inline-redigering: du har alltid sista ordet och kan justera alla texter direkt i gränssnittet.
+
+4. **Utskrift & PDF-Export**:
+   - Ren och ATS-optimerad enkelsidig/flersidig A4-layout för omedelbar utskrift eller sparande som PDF.
+
+5. **Ansökningsspårare (Kanban)**:
+   - Visuell tavla för att följa status: Sparade, Optimerade, Skickade, Intervju, Erbjudande och Avslag.
+
+## Etiska Riktlinjer & Integritet
+
+- **Sanningsbarriär (Anti-hallucination)**: Modellen är strikt instruerad att aldrig hitta på tidigare arbetsgivare, utbildningar, fiktiva projekt eller år som inte finns i ditt Master-CV. Syftet är att lyfta fram och belysa dina verkliga meriter med samma terminologi som arbetsgivaren efterfrågar.
+- **Human-in-the-loop**: Inga ansökningar skickas automatiskt i blindo. Du granskar alltid förändringarna sida vid sida innan något exporteras eller skickas.
+- **Lokal & Privat Lagring**: All personlig information, historik och API-nycklar sparas lokalt i en SQLite-databas på din dator. Ingen extern molndatabas krävs.
+
+## Teknisk Arkitektur
+
+- **Fullstack-ramverk**: Next.js 16 (App Router, React 19, TypeScript)
+- **Styling**: Tailwind CSS (med stöd för mörkt läge och utskriftsmedia)
+- **Databas & ORM**: SQLite (`dev.db`) med Prisma 7 och `@prisma/adapter-better-sqlite3`
+- **AI-motor**: Google Gemini API via `@google/generative-ai`
+- **Öppna API:er**: Arbetsförmedlingen JobTech Dev Search API
+
+## Installation och Start
+
+### Förutsättningar
+- Node.js version 20 eller högre
+- npm
+
+### 1. Klona och installera beroenden
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repo-url>
+cd Workalogic
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Konfigurera miljövariabler
+Kopiera `.env.example` till `.env`:
+```bash
+cp .env.example .env
+```
+Ange din Google Gemini API-nyckel i `.env` eller direkt via appens inställningsflik:
+```env
+DATABASE_URL="file:./dev.db"
+GEMINI_API_KEY="din-gemini-api-nyckel"
+```
+*(En gratis API-nyckel kan hämtas från Google AI Studio).*
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Initiera databasen
+```bash
+npx prisma db push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Starta utvecklingsservern
+```bash
+npm run dev
+```
+Applikationen finns tillgänglig på [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+## Projektstruktur
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── jobs/           # Endpoints för jobbhantering och detaljer
+│   │   │   └── [id]/tailor # AI-optimering och diff-uppdateringar
+│   │   ├── profile/        # Master-CV hantering och AI-import
+│   │   └── settings/       # Inställningar och API-nycklar
+│   ├── globals.css         # Tailwind och print-regler för A4 PDF
+│   ├── layout.tsx
+│   └── page.tsx            # Huvudvy och flödeshantering
+├── components/
+│   ├── CustomJobModal.tsx  # Ingest via länk eller råtext
+│   ├── JobSearchView.tsx   # Sökning mot JobTech API med Göteborg-filter
+│   ├── MasterProfileView.tsx # CV-editor och importmodal
+│   ├── Navbar.tsx          # Navigering och statusräknare
+│   ├── SettingsView.tsx    # Inställningar och API-konfiguration
+│   ├── TailorStudio.tsx    # Sida-vid-sida diff, brev och PDF-preview
+│   └── TrackerView.tsx     # Kanban-tavla för ansökningsstatus
+└── lib/
+    ├── db.ts               # Prisma-klient singleton med SQLite adapter
+    ├── gemini.ts           # AI-prompts, analys och optimeringsmotor
+    ├── jobtech.ts          # Klient för Arbetsförmedlingens API
+    ├── parser.ts           # Extraherare för externa länkar och text
+    └── types.ts            # Domäntyper och gränssnitt
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Licens
+MIT
