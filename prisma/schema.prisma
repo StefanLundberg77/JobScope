@@ -1,0 +1,75 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+model MasterProfile {
+  id           String   @id @default("default")
+  fullName     String   @default("")
+  email        String   @default("")
+  phone        String   @default("")
+  location     String   @default("Göteborg")
+  title        String   @default("")
+  summary      String   @default("")
+  website      String   @default("")
+  linkedin     String   @default("")
+  github       String   @default("")
+  experiences  String   @default("[]")
+  education    String   @default("[]")
+  skills       String   @default("[]")
+  languages    String   @default("[]")
+  projects     String   @default("[]")
+  rawText      String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model JobListing {
+  id              String                @id @default(cuid())
+  externalId      String?               @unique
+  title           String
+  company         String
+  location        String
+  workplaceType   String                @default("onsite")
+  url             String?
+  source          String                @default("jobtech")
+  publishedAt     DateTime?
+  deadline        DateTime?
+  description     String
+  requiredSkills  String                @default("[]")
+  preferredSkills String                @default("[]")
+  status          String                @default("saved")
+  matchScore      Int?
+  matchAnalysis   String?
+  applications    TailoredApplication[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+}
+
+model TailoredApplication {
+  id                  String     @id @default(cuid())
+  jobId               String
+  job                 JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tailoredSummary     String     @default("")
+  tailoredExperiences String     @default("[]")
+  tailoredSkills      String     @default("[]")
+  coverLetter         String     @default("")
+  diffNotes           String?
+  notes               String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+}
+
+model UserSettings {
+  id              String   @id @default("default")
+  geminiApiKey    String?
+  targetRole      String   @default("Systemutvecklare")
+  targetLocations String   @default("Göteborg")
+  workPreference  String   @default("any")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
