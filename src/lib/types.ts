@@ -1,4 +1,4 @@
-// Domain types for Workalogic
+// Domain types for JobScope
 
 export interface WorkExperience {
   id: string;
@@ -97,7 +97,7 @@ export interface JobItem {
   location: string;
   workplaceType: "onsite" | "hybrid" | "remote";
   url?: string | null;
-  source: "jobtech" | "custom_url" | "manual";
+  source: "jobtech" | "linkedin" | "custom_url" | "manual";
   publishedAt?: string | null;
   deadline?: string | null;
   description: string;
@@ -116,4 +116,38 @@ export interface JobItem {
     notes?: string | null;
     updatedAt: string;
   }[];
+}
+
+export interface UnifiedJobHit {
+  id: string;
+  headline: string;
+  employer: {
+    name: string;
+    workplace?: string;
+    url?: string;
+  };
+  workplace_address?: {
+    municipality?: string;
+    region?: string;
+    city?: string;
+  };
+  workplace_model?: "remote" | "hybrid" | "onsite" | string;
+  publication_date: string;
+  application_deadline?: string;
+  webpage_url?: string;
+  application_details?: {
+    url?: string;
+    email?: string;
+    reference?: string;
+  };
+  source: "jobtech" | "linkedin";
+  description?: {
+    text?: string;
+  };
+  must_have?: {
+    skills?: { label: string }[];
+  };
+  nice_to_have?: {
+    skills?: { label: string }[];
+  };
 }

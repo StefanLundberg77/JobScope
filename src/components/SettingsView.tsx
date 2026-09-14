@@ -205,6 +205,56 @@ export function SettingsView() {
           </div>
         </div>
 
+        {/* Job Sources & LinkedIn Info Card */}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <h3 className="mb-2 text-base font-bold text-neutral-900 dark:text-white">
+            Jobbkällor & Automatisk bevakning
+          </h3>
+          <p className="mb-4 text-xs text-neutral-500 dark:text-neutral-400">
+            JobScope bevakar annonser från flera källor samtidigt och matchar dem automatiskt mot ditt Master-CV.
+          </p>
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 rounded-xl border border-neutral-100 bg-neutral-50/70 p-3.5 dark:border-neutral-800 dark:bg-neutral-800/50">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xs">
+                in
+              </div>
+              <div className="flex-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    LinkedIn Offentlig Sökning
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-950/60 dark:text-green-300">
+                    Aktiv (Gästläge)
+                  </span>
+                </div>
+                <p className="mt-1 text-neutral-500 dark:text-neutral-400">
+                  Hämtar offentliga jobbannonser i realtid utan inloggning. Inga cookies eller lösenord sparas, vilket ger noll risk för kontospärr.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-xl border border-neutral-100 bg-neutral-50/70 p-3.5 dark:border-neutral-800 dark:bg-neutral-800/50">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-xs">
+                AF
+              </div>
+              <div className="flex-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    Arbetsförmedlingen JobTech API
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-950/60 dark:text-green-300">
+                    Aktiv (Öppet API)
+                  </span>
+                </div>
+                <p className="mt-1 text-neutral-500 dark:text-neutral-400">
+                  Direktkoppling till Sveriges officiella platsbank med strukturerade skallkrav och meriterande kompetenser.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="flex justify-end">
           <button
             type="submit"

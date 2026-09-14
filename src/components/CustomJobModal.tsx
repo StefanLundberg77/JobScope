@@ -112,7 +112,7 @@ export function CustomJobModal({ onJobSaved }: CustomJobModalProps) {
                 />
               </div>
               <p className="mt-1.5 text-xs text-neutral-400">
-                Workalogic hämtar webbsidan och extraherar roll, företag, beskrivning och krav.
+                JobScope hämtar webbsidan och extraherar roll, företag, beskrivning och krav.
               </p>
             </div>
           ) : (

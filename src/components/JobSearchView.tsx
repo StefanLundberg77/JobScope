@@ -13,9 +13,10 @@ import {
   Loader2,
   Filter,
   Globe,
+  RefreshCw,
+  Layers,
 } from "lucide-react";
-import { JobTechHit } from "@/lib/jobtech";
-import { JobItem } from "@/lib/types";
+import { UnifiedJobHit, JobItem } from "@/lib/types";
 
 interface JobSearchViewProps {
   onOpenTailorStudio: (jobId: string) => void;
@@ -31,21 +32,28 @@ export function JobSearchView({
     "goteborg" | "commute" | "region_14" | "all"
   >("goteborg");
   const [remoteOnly, setRemoteOnly] = useState(false);
-  const [hits, setHits] = useState<JobTechHit[]>([]);
+  const [source, setSource] = useState<"all" | "linkedin" | "jobtech">("all");
+  const [hits, setHits] = useState<UnifiedJobHit[]>([]);
   const [totalHits, setTotalHits] = useState(0);
   const [loading, setLoading] = useState(false);
   const [savedJobIds, setSavedJobIds] = useState<Record<string, string>>({}); // externalId -> localDbId
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // Daily scan state
+  const [scanning, setScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+
   // Search function
-  const handleSearch = async (overrideQuery?: string) => {
+  const handleSearch = async (overrideQuery?: string, overrideSource?: "all" | "linkedin" | "jobtech") => {
     setLoading(true);
     try {
       const q = overrideQuery !== undefined ? overrideQuery : query;
+      const s = overrideSource !== undefined ? overrideSource : source;
       const params = new URLSearchParams({
         q,
         location,
         remote: remoteOnly ? "true" : "false",
+        source: s,
         limit: "25",
       });
 
@@ -76,10 +84,10 @@ export function JobSearchView({
         setSavedJobIds(map);
       })
       .catch(() => {});
-  }, [location, remoteOnly]);
+  }, [location, remoteOnly, source]);
 
   // Save job and optionally navigate to tailor studio
-  const handleSaveJob = async (hit: JobTechHit, openStudio = false) => {
+  const handleSaveJob = async (hit: UnifiedJobHit, openStudio = false) => {
     setSavingId(hit.id);
     try {
       // If already saved, just open studio
@@ -91,7 +99,10 @@ export function JobSearchView({
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ externalId: hit.id }),
+        body: JSON.stringify({
+          externalId: hit.id,
+          url: hit.webpage_url,
+        }),
       });
 
       if (res.ok) {
@@ -106,6 +117,36 @@ export function JobSearchView({
       console.error("Failed to save job:", err);
     } finally {
       setSavingId(null);
+    }
+  };
+
+  // Trigger automated scan
+  const handleTriggerScan = async () => {
+    setScanning(true);
+    setScanMessage("Kör automatisk sökning & ATS-analys på LinkedIn & JobTech...");
+    try {
+      const res = await fetch("/api/jobs/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minScore: 60 }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setScanMessage(
+          `✅ Klart! Sökte av ${data.scannedTotal} annonser, sparade ${data.savedCount} relevanta i Kanban-tavlan.`
+        );
+        onRefreshSavedCount();
+        handleSearch();
+      } else {
+        setScanMessage(`❌ Fel: ${data.error || "Kunde inte genomföra sökningen"}`);
+      }
+    } catch (err) {
+      console.error("Daily scan error:", err);
+      setScanMessage("❌ Nätverksfel vid automatisk sökning");
+    } finally {
+      setScanning(false);
+      setTimeout(() => setScanMessage(null), 8000);
     }
   };
 
@@ -143,10 +184,77 @@ export function JobSearchView({
             )}
             Sök annonser
           </button>
+
+          <button
+            type="button"
+            onClick={handleTriggerScan}
+            disabled={scanning}
+            title="Kör automatisk sökning mot LinkedIn & JobTech och spara matcher med AI i Kanban"
+            className="flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/50 disabled:opacity-50"
+          >
+            {scanning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            )}
+            <span className="hidden md:inline">Kör daglig bevakning</span>
+          </button>
         </form>
 
-        {/* Location & Remote Filter Chips */}
+        {/* Scan Message Notification */}
+        {scanMessage && (
+          <div className="mt-3 rounded-xl bg-neutral-100 p-3 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
+            {scanMessage}
+          </div>
+        )}
+
+        {/* Source Filter Tabs */}
         <div className="mt-4 flex flex-wrap items-center gap-2 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 mr-2">
+            <Layers className="h-3.5 w-3.5" /> Källa:
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setSource("all")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              source === "all"
+                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-sm"
+                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+            }`}
+          >
+            Alla källor (JobTech + LinkedIn)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSource("linkedin")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              source === "linkedin"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-blue-400" />
+            LinkedIn (Offentlig sökning)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSource("jobtech")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              source === "jobtech"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            Arbetsförmedlingen
+          </button>
+        </div>
+
+        {/* Location & Remote Filter Chips */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
           <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 mr-2">
             <Filter className="h-3.5 w-3.5" /> Område:
           </span>
@@ -172,7 +280,7 @@ export function JobSearchView({
                 : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
             }`}
           >
-            Pendlingsavstånd (Mölndal, Kungälv, Kungsbacka m.fl.)
+            Pendlingsavstånd (Mölndal, Kungälv m.fl.)
           </button>
 
           <button
@@ -218,7 +326,11 @@ export function JobSearchView({
           Hittade annonser ({totalHits})
         </h2>
         <span className="text-xs text-neutral-400">
-          Källa: Arbetsförmedlingen JobTech API
+          {source === "all"
+            ? "Källa: LinkedIn (Offentlig) + Arbetsförmedlingen"
+            : source === "linkedin"
+            ? "Källa: LinkedIn (Offentliga annonser)"
+            : "Källa: Arbetsförmedlingen JobTech API"}
         </span>
       </div>
 
@@ -229,7 +341,7 @@ export function JobSearchView({
         </div>
       ) : hits.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 p-12 text-center text-neutral-500 dark:border-neutral-700">
-          Inga jobbannonser matchade sökningen. Prova en annan sökfras eller bredda området.
+          Inga jobbannonser matchade sökningen. Prova en annan sökfras eller bredda området/källan.
         </div>
       ) : (
         <div className="space-y-4">
@@ -243,6 +355,7 @@ export function JobSearchView({
 
             const mustHaveSkills = hit.must_have?.skills?.map((s) => s.label) || [];
             const niceHaveSkills = hit.nice_to_have?.skills?.map((s) => s.label) || [];
+            const isLinkedIn = hit.source === "linkedin";
 
             return (
               <div
@@ -251,6 +364,21 @@ export function JobSearchView({
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      {isLinkedIn ? (
+                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          LinkedIn
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          JobTech
+                        </span>
+                      )}
+                      <span className="text-xs text-neutral-400">
+                        {hit.publication_date ? new Date(hit.publication_date).toLocaleDateString("sv-SE") : ""}
+                      </span>
+                    </div>
+
                     <h3 className="text-base font-bold text-neutral-900 dark:text-white">
                       {hit.headline}
                     </h3>
@@ -314,9 +442,11 @@ export function JobSearchView({
                 </div>
 
                 {/* Brief description snippet */}
-                <p className="mt-3 text-xs leading-relaxed text-neutral-600 line-clamp-2 dark:text-neutral-400">
-                  {hit.description?.text || "Ingen beskrivning tillgänglig."}
-                </p>
+                {hit.description?.text && (
+                  <p className="mt-3 text-xs leading-relaxed text-neutral-600 line-clamp-2 dark:text-neutral-400">
+                    {hit.description.text}
+                  </p>
+                )}
 
                 {/* Skills tags */}
                 {(mustHaveSkills.length > 0 || niceHaveSkills.length > 0) && (

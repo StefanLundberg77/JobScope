@@ -1,6 +1,6 @@
-# Workalogic
+# JobScope
 
-Workalogic är en modern webbapplikation byggd för att effektivisera jobbsökning och ansökningsprocessen. Appen söker och bevakar relevanta jobbannonser via officiella öppna API:er, analyserar kravprofiler och optimerar ditt befintliga CV och personliga brev per specifik annons, med full transparens och mänsklig kontroll (human-in-the-loop).
+JobScope är en modern webbapplikation byggd för intelligent bevakning av IT-arbetsmarknaden, kravprofilsanalys och matchning. Appen söker och bevakar relevanta jobbannonser via officiella öppna API:er (Arbetsförmedlingen JobTech Dev), analyserar kravprofiler och mappar kompetenser mot ett lokalt Master-CV med full transparens och mänsklig kontroll (human-in-the-loop).
 
 ## Huvudfunktioner
 
@@ -13,7 +13,7 @@ Workalogic är en modern webbapplikation byggd för att effektivisera jobbsökni
    - Central profil som fungerar som enda sanningskälla för din erfarenhet och utbildning.
    - Stöd för att klistra in råtext från ditt befintliga CV, LinkedIn-profil eller portfolio och automatiskt strukturera datan med hjälp av AI.
 
-3. **AI-driven Matchning & CV-Optimering**:
+3. **AI-driven Matchning & Kravprofilsanalys**:
    - ATS-analys: matchningsprocent, starka träffar, överförbara färdigheter och saknade nyckelord.
    - Skräddarsydd profilpitch och omformulerade erfarenhetspunkter (STAR-metod) som lyfter fram dina faktiska prestationer i linje med annonsens språk.
    - Generering av personligt brev anpassat till rollen och företaget.
@@ -49,7 +49,7 @@ Workalogic är en modern webbapplikation byggd för att effektivisera jobbsökni
 ### 1. Klona och installera beroenden
 ```bash
 git clone <repo-url>
-cd Workalogic
+cd JobScope
 npm install
 ```
 

@@ -64,10 +64,10 @@ export function Navbar({ currentTab, onSelectTab, savedCount }: NavbarProps) {
           </div>
           <div>
             <span className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">
-              Workalogic
+              JobScope
             </span>
             <span className="hidden sm:inline-block ml-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-              AI Job Match & CV Tailor
+              Job Tech & Kravprofilsanalys
             </span>
           </div>
         </div>

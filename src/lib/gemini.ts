@@ -4,8 +4,6 @@ import {
   MasterProfileData,
   MatchAnalysis,
   TailoredCvData,
-  WorkExperience,
-  SkillCategory,
 } from "./types";
 
 export async function getGeminiApiKey(): Promise<string | null> {
@@ -32,9 +30,14 @@ export async function getGeminiClient(): Promise<GoogleGenerativeAI> {
   return new GoogleGenerativeAI(key);
 }
 
-// Extract structured profile data from raw pasted CV or LinkedIn text
-export async function parseRawProfileWithAI(
-  rawText: string
+export interface ParseProfileInput {
+  rawText?: string;
+  pdfBase64?: string;
+}
+
+// Extract structured profile data from raw pasted text OR uploaded PDF (e.g. LinkedIn PDF export)
+export async function parseProfileWithAI(
+  input: ParseProfileInput
 ): Promise<Partial<MasterProfileData>> {
   const genAI = await getGeminiClient();
   const model = genAI.getGenerativeModel({
@@ -45,20 +48,22 @@ export async function parseRawProfileWithAI(
     },
   });
 
-  const prompt = `
+  const baseInstructions = `
 Du är en erfaren rekryteringsexpert och dataextraherare.
-Analysera följande råtext från ett CV, LinkedIn-profil eller portfolio och extrahera all information i strikt JSON-format.
+Analysera följande CV, LinkedIn-profil (PDF-export eller text) eller portfolio och extrahera all information i strikt JSON-format.
 
-Källtext:
-"""
-${rawText}
-"""
+Särskilt för LinkedIn PDF-exporter och portfolier:
+- LinkedIn-exporter har ofta en vänsterspalt med kontaktuppgifter (namn, e-post, telefon, LinkedIn-länk, ort), primära kompetenser och språk.
+- Huvudspalten innehåller sammanfattning/om mig, arbetslivserfarenhet och utbildning.
+- Identifiera särskilt utvalda projekt, portfolio-arbeten eller publikationer om sådana nämns, och placera dem i "projects".
+- Om portfoliolänkar eller webbplatser finns angivna, extrahera dem till website eller respektive projekts link.
 
 Regler:
-1. Hitta inte på information som inte finns i texten.
+1. Hitta inte på fiktiv information som inte finns i källan.
 2. Formatera erfarenheter och utbildningar med realistiska eller angivna datum (t.ex. "2021-01" eller "2021").
 3. Dela upp kompetenser/färdigheter i relevanta kategorier (t.ex. "Programmeringsspråk", "Ramverk & Bibliotek", "Moln & DevOps", "Verktyg", "Metodik & Mjuka förmågor").
 4. För varje roll, dela upp beskrivningen i tydliga prestationer/ansvarsområden (achievements) samt använda teknologier (skills).
+5. Extrahera projekt/portfolio med projektnamn, beskrivning, tech stack och eventuella webblänkar.
 
 Svara EXAKT med detta JSON-schema:
 {
@@ -122,9 +127,33 @@ Svara EXAKT med detta JSON-schema:
 }
 `;
 
-  const result = await model.generateContent(prompt);
+  let result;
+  if (input.pdfBase64) {
+    result = await model.generateContent([
+      {
+        inlineData: {
+          data: input.pdfBase64,
+          mimeType: "application/pdf",
+        },
+      },
+      baseInstructions,
+    ]);
+  } else if (input.rawText) {
+    const prompt = `${baseInstructions}\n\nKälltext:\n"""\n${input.rawText}\n"""`;
+    result = await model.generateContent(prompt);
+  } else {
+    throw new Error("Varken text eller PDF-fil angavs för import.");
+  }
+
   const text = result.response.text();
   return JSON.parse(text);
+}
+
+// Backwards-compatible wrapper
+export async function parseRawProfileWithAI(
+  rawText: string
+): Promise<Partial<MasterProfileData>> {
+  return parseProfileWithAI({ rawText });
 }
 
 // Analyze match between job listing and master CV

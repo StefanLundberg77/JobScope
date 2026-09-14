@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fetchJobTechAd } from "@/lib/jobtech";
 import { fetchAndParseJobUrl, parseJobAdText } from "@/lib/parser";
+import { isLinkedInUrl, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
 import { MasterProfileData } from "@/lib/types";
 
@@ -63,7 +64,35 @@ export async function POST(req: Request) {
       preferredSkills: [] as string[],
     };
 
-    if (externalId) {
+    if (externalId?.startsWith("linkedin-") || isLinkedInUrl(url || "")) {
+      const targetUrlOrId = url || externalId!;
+      const parsed = await fetchLinkedInJobDetails(targetUrlOrId);
+
+      let reqSkills: string[] = [];
+      let prefSkills: string[] = [];
+
+      // Extract skills using Gemini if available
+      try {
+        if (parsed.description) {
+          const aiParsed = await parseJobAdText(parsed.description, parsed.url);
+          reqSkills = aiParsed.requiredSkills || [];
+          prefSkills = aiParsed.preferredSkills || [];
+        }
+      } catch (e) {
+        console.warn("Gemini skill extraction on LinkedIn job skipped:", e);
+      }
+
+      jobData.title = parsed.title;
+      jobData.company = parsed.company;
+      jobData.location = parsed.location;
+      jobData.workplaceType = parsed.workplaceType;
+      jobData.url = parsed.url || url || null;
+      jobData.source = "linkedin";
+      jobData.deadline = parsed.deadline ? new Date(parsed.deadline) : null;
+      jobData.description = parsed.description;
+      jobData.requiredSkills = reqSkills;
+      jobData.preferredSkills = prefSkills;
+    } else if (externalId) {
       // Fetch full details from JobTech API
       const ad = await fetchJobTechAd(externalId);
       jobData.title = ad.headline;

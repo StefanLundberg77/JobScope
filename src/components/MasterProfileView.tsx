@@ -19,6 +19,10 @@ import {
   Code,
   AlertCircle,
   Loader2,
+  UploadCloud,
+  FileUp,
+  FolderGit2,
+  X,
 } from "lucide-react";
 import {
   MasterProfileData,
@@ -50,6 +54,9 @@ export function MasterProfileView() {
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importMode, setImportMode] = useState<"pdf" | "text">("pdf");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -102,15 +109,32 @@ export function MasterProfileView() {
 
   // AI Import handler
   const handleImportAI = async () => {
-    if (!importText.trim()) return;
     setImporting(true);
     setErrorMessage(null);
     try {
-      const res = await fetch("/api/profile/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: importText }),
-      });
+      let res: Response;
+
+      if (importMode === "pdf") {
+        if (!selectedFile) {
+          throw new Error("Vänligen välj en PDF-fil att ladda upp.");
+        }
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        res = await fetch("/api/profile/import", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        if (!importText.trim()) {
+          throw new Error("Vänligen klistra in text att analysera.");
+        }
+        res = await fetch("/api/profile/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rawText: importText }),
+        });
+      }
 
       const data = await res.json();
       if (!res.ok) {
@@ -121,16 +145,20 @@ export function MasterProfileView() {
         setProfile((prev) => ({
           ...prev,
           ...data.profile,
-          rawText: importText,
+          rawText:
+            importMode === "pdf"
+              ? `[Importerad från PDF: ${selectedFile?.name}]`
+              : importText,
         }));
         setImportModalOpen(false);
         setImportText("");
+        setSelectedFile(null);
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
       }
     } catch (err: unknown) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Fel vid AI-analys av text"
+        err instanceof Error ? err.message : "Fel vid AI-analys av profil"
       );
     } finally {
       setImporting(false);
@@ -198,6 +226,37 @@ export function MasterProfileView() {
       items: [],
     };
     setProfile({ ...profile, skills: [...profile.skills, newCat] });
+  };
+
+  // Project / Portfolio helpers
+  const addProject = () => {
+    const newProj: Project = {
+      name: "",
+      description: "",
+      link: "",
+      techStack: [],
+    };
+    setProfile({
+      ...profile,
+      projects: [newProj, ...(profile.projects || [])],
+    });
+  };
+
+  const updateProject = (
+    index: number,
+    field: keyof Project,
+    val: unknown
+  ) => {
+    const projs = [...(profile.projects || [])];
+    projs[index] = { ...projs[index], [field]: val };
+    setProfile({ ...profile, projects: projs });
+  };
+
+  const removeProject = (index: number) => {
+    setProfile({
+      ...profile,
+      projects: (profile.projects || []).filter((_, i) => i !== index),
+    });
   };
 
   if (loading) {
@@ -737,61 +796,332 @@ export function MasterProfileView() {
         </div>
       </div>
 
+      {/* Section 5: Projekt & Portfolio */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-neutral-900 dark:text-white">
+              <FolderGit2 className="h-5 w-5 text-blue-600" />
+              Projekt & Portfolio ({profile.projects?.length || 0})
+            </h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Egna projekt, kundcase eller utvalda arbeten från LinkedIn och portfolio.
+            </p>
+          </div>
+          <button
+            onClick={addProject}
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Lägg till projekt
+          </button>
+        </div>
+
+        {(!profile.projects || profile.projects.length === 0) ? (
+          <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-xs text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+            Inga projekt tillagda än. Klicka på ”Lägg till projekt” eller ladda upp din LinkedIn-PDF med AI.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {profile.projects.map((proj, idx) => (
+              <div
+                key={idx}
+                className="relative rounded-lg border border-neutral-200 bg-neutral-50/50 p-4 dark:border-neutral-800 dark:bg-neutral-800/50"
+              >
+                <button
+                  onClick={() => removeProject(idx)}
+                  className="absolute right-3 top-3 text-neutral-400 hover:text-red-600"
+                  title="Ta bort projekt"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Projektnamn
+                    </label>
+                    <input
+                      type="text"
+                      value={proj.name}
+                      onChange={(e) =>
+                        updateProject(idx, "name", e.target.value)
+                      }
+                      placeholder="t.ex. E-handelsplattform eller Portfoliosida"
+                      className="w-full rounded border border-neutral-300 bg-white px-2.5 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Länk / URL
+                    </label>
+                    <input
+                      type="text"
+                      value={proj.link || ""}
+                      onChange={(e) =>
+                        updateProject(idx, "link", e.target.value)
+                      }
+                      placeholder="https://github.com/... eller https://demo.se"
+                      className="w-full rounded border border-neutral-300 bg-white px-2.5 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Beskrivning
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={proj.description}
+                      onChange={(e) =>
+                        updateProject(idx, "description", e.target.value)
+                      }
+                      placeholder="Beskriv vad projektet gör, din roll och vilka resultat som uppnåddes..."
+                      className="w-full rounded border border-neutral-300 bg-white px-2.5 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Teknologier (separera med komma)
+                    </label>
+                    <input
+                      type="text"
+                      value={proj.techStack?.join(", ") || ""}
+                      onChange={(e) => {
+                        const items = e.target.value
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean);
+                        updateProject(idx, "techStack", items);
+                      }}
+                      placeholder="React, TypeScript, Next.js, Tailwind CSS"
+                      className="w-full rounded border border-neutral-300 bg-white px-2.5 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* AI Import Modal */}
       {importModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-blue-600" />
                 <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-                  Importera CV eller profil med AI
+                  Importera CV & LinkedIn-portfolio med AI
                 </h3>
               </div>
               <button
-                onClick={() => setImportModalOpen(false)}
-                className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                onClick={() => {
+                  setImportModalOpen(false);
+                  setSelectedFile(null);
+                  setErrorMessage(null);
+                }}
+                className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
               >
-                ✕
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <p className="mb-3 text-xs text-neutral-600 dark:text-neutral-400">
-              Klistra in all text från ditt befintliga CV, LinkedIn-profil (eller
-              export) eller din portfoliosida här. Vår AI strukturerar och mappar
-              automatiskt alla roller, datum och kompetenser.
-            </p>
-
-            <textarea
-              rows={12}
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder="Klistra in din text här... t.ex:&#10;Anna Andersson&#10;Fullstack Developer i Göteborg&#10;&#10;Erfarenhet:&#10;Volvo Group (2021-nuvarande)..."
-              className="w-full rounded-lg border border-neutral-300 p-3 text-xs font-mono focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-            />
-
-            <div className="mt-4 flex items-center justify-end gap-3">
+            {/* Mode Switcher Tabs */}
+            <div className="mb-4 flex rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
               <button
-                onClick={() => setImportModalOpen(false)}
+                type="button"
+                onClick={() => setImportMode("pdf")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-xs font-semibold transition ${
+                  importMode === "pdf"
+                    ? "bg-white text-blue-600 shadow-sm dark:bg-neutral-900 dark:text-blue-400"
+                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                }`}
+              >
+                <FileUp className="h-4 w-4" />
+                Ladda upp PDF (LinkedIn / CV)
+              </button>
+              <button
+                type="button"
+                onClick={() => setImportMode("text")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-xs font-semibold transition ${
+                  importMode === "text"
+                    ? "bg-white text-blue-600 shadow-sm dark:bg-neutral-900 dark:text-blue-400"
+                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                }`}
+              >
+                <FileText className="h-4 w-4" />
+                Klistra in text
+              </button>
+            </div>
+
+            {errorMessage && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {importMode === "pdf" ? (
+              <div className="space-y-4">
+                {/* Drag and Drop Zone */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      if (
+                        file.type === "application/pdf" ||
+                        file.name.toLowerCase().endsWith(".pdf")
+                      ) {
+                        setSelectedFile(file);
+                        setErrorMessage(null);
+                      } else {
+                        setErrorMessage("Endast PDF-filer stöds.");
+                      }
+                    }
+                  }}
+                  className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition ${
+                    isDragging
+                      ? "border-blue-500 bg-blue-50/60 dark:bg-blue-950/20"
+                      : "border-neutral-300 hover:border-neutral-400 bg-neutral-50/50 dark:border-neutral-700 dark:bg-neutral-800/30"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    id="pdf-upload-input"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFile(file);
+                        setErrorMessage(null);
+                      }
+                    }}
+                    className="hidden"
+                  />
+
+                  {selectedFile ? (
+                    <div className="flex w-full items-center justify-between rounded-lg border border-blue-200 bg-blue-50/80 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs font-semibold text-neutral-900 dark:text-white">
+                            {selectedFile.name}
+                          </p>
+                          <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                            {(selectedFile.size / 1024).toFixed(0)} KB • PDF redo för analys
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFile(null)}
+                        className="rounded p-1 text-neutral-400 hover:bg-white hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-white"
+                        title="Välj en annan fil"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="pdf-upload-input"
+                      className="flex cursor-pointer flex-col items-center justify-center gap-2"
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                        <UploadCloud className="h-6 w-6" />
+                      </div>
+                      <p className="text-xs font-semibold text-neutral-900 dark:text-white">
+                        Dra och släpp din LinkedIn PDF här, eller{" "}
+                        <span className="text-blue-600 hover:underline dark:text-blue-400">
+                          bläddra på datorn
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                        Stödjer PDF-exporter från LinkedIn, CV eller portfoliosammanställning (max 10 MB)
+                      </p>
+                    </label>
+                  )}
+                </div>
+
+                {/* LinkedIn Tips Box */}
+                <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 text-xs text-blue-950 dark:border-blue-950/60 dark:bg-blue-950/20 dark:text-blue-200">
+                  <p className="font-semibold mb-1">
+                    💡 Så sparar du din LinkedIn-profil som PDF:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-blue-900/80 dark:text-blue-300">
+                    <li>Gå till din profil på LinkedIn i webbläsaren.</li>
+                    <li>Klicka på knappen <strong>Mer</strong> (eller <em>More</em>) bredvid profilbilden.</li>
+                    <li>Välj <strong>Spara som PDF</strong> (<em>Save to PDF</em>).</li>
+                    <li>Ladda upp den sparade filen i rutan ovanför!</li>
+                  </ol>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="mb-2 text-xs text-neutral-600 dark:text-neutral-400">
+                  Klistra in all text från ditt befintliga CV, LinkedIn-profil eller din portfoliosida här. Vår AI strukturerar och mappar automatiskt alla roller, datum och kompetenser.
+                </p>
+                <textarea
+                  rows={10}
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  placeholder="Klistra in din text här... t.ex:&#10;Anna Andersson&#10;Fullstack Developer i Göteborg&#10;&#10;Erfarenhet:&#10;Volvo Group (2021-nuvarande)..."
+                  className="w-full rounded-lg border border-neutral-300 p-3 text-xs font-mono focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                />
+              </div>
+            )}
+
+            <div className="mt-5 flex items-center justify-end gap-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setImportModalOpen(false);
+                  setSelectedFile(null);
+                  setErrorMessage(null);
+                }}
                 disabled={importing}
-                className="rounded-lg px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                className="rounded-lg px-4 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               >
                 Avbryt
               </button>
               <button
+                type="button"
                 onClick={handleImportAI}
-                disabled={importing || !importText.trim()}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                disabled={
+                  importing ||
+                  (importMode === "pdf" && !selectedFile) ||
+                  (importMode === "text" && !importText.trim())
+                }
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {importing ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Analyserar och extraherar...
+                    {importMode === "pdf"
+                      ? "Analyserar LinkedIn PDF med AI..."
+                      : "Analyserar och extraherar..."}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Analysera och fyll i mitt CV
+                    {importMode === "pdf"
+                      ? "Importera och analysera PDF"
+                      : "Analysera och fyll i mitt CV"}
                   </>
                 )}
               </button>
