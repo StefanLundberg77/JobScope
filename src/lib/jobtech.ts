@@ -2,6 +2,7 @@
 
 export interface JobTechSearchParams {
   query?: string;
+  occupationField?: string;
   location?: "goteborg" | "commute" | "region_14" | "all";
   remote?: boolean;
   limit?: number;
@@ -54,6 +55,7 @@ export interface JobTechSearchResponse {
   hits: JobTechHit[];
 }
 
+export const OCCUPATION_FIELD_DATA_IT = "apaJ_2ja_LuF"; // Arbetsförmedlingen Data/IT yrkesområde
 const GOTEBORG_MUNICIPALITY = "1480";
 const COMMUTE_MUNICIPALITIES = [
   "1480", // Göteborg
@@ -76,6 +78,11 @@ export async function searchJobTech(
 
   if (params.query?.trim()) {
     url.searchParams.set("q", params.query.trim());
+  }
+
+  // Occupation field filter (e.g. Data/IT)
+  if (params.occupationField) {
+    url.searchParams.set("occupation-field", params.occupationField);
   }
 
   // Location filter

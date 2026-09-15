@@ -23,6 +23,7 @@ import {
   FileUp,
   FolderGit2,
   X,
+  Camera,
 } from "lucide-react";
 import {
   MasterProfileData,
@@ -31,6 +32,51 @@ import {
   SkillCategory,
   Project,
 } from "@/lib/types";
+
+const AVAILABLE_PHOTOS = [
+  {
+    id: "rum_gron_vaxt",
+    name: "Grön växt (LinkedIn)",
+    path: "/profile/cv_rum_gron_vaxt.jpg",
+    tag: "Aktiv på LinkedIn",
+  },
+  {
+    id: "office_lugnt_rum",
+    name: "Lugnt rum & bokhylla",
+    path: "/profile/cv_office_lugnt_rum.jpg",
+    tag: "Sober & professionell",
+  },
+  {
+    id: "office_vanlig_vagg",
+    name: "Enkel vägg",
+    path: "/profile/cv_office_vanlig_vagg.jpg",
+    tag: "Neutral",
+  },
+  {
+    id: "studio_portrait",
+    name: "Studioporträtt",
+    path: "/profile/cv_studio_portrait.jpg",
+    tag: "Studioljus",
+  },
+  {
+    id: "rum_gron_vaxt_bw",
+    name: "Grön växt (Svartvit)",
+    path: "/profile/cv_rum_gron_vaxt_bw.jpg",
+    tag: "Monokrom för utskrift",
+  },
+  {
+    id: "office_lugnt_rum_bw",
+    name: "Lugnt rum (Svartvit)",
+    path: "/profile/cv_office_lugnt_rum_bw.jpg",
+    tag: "Monokrom",
+  },
+  {
+    id: "office_vanlig_vagg_bw",
+    name: "Enkel vägg (Svartvit)",
+    path: "/profile/cv_office_vanlig_vagg_bw.jpg",
+    tag: "Monokrom",
+  },
+];
 
 export function MasterProfileView() {
   const [profile, setProfile] = useState<MasterProfileData>({
@@ -43,6 +89,7 @@ export function MasterProfileView() {
     website: "",
     linkedin: "",
     github: "",
+    photoUrl: "/profile/cv_rum_gron_vaxt.jpg",
     experiences: [],
     education: [],
     skills: [],
@@ -320,6 +367,73 @@ export function MasterProfileView() {
           <User className="h-5 w-5 text-blue-600" />
           Personuppgifter & Kontakt
         </h2>
+
+        {/* Profilbild Väljare */}
+        <div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 dark:border-neutral-800 dark:bg-neutral-800/40">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="relative shrink-0">
+              <img
+                src={profile.photoUrl || "/profile/cv_rum_gron_vaxt.jpg"}
+                alt="Aktiv profilbild"
+                className="h-20 w-20 rounded-2xl object-cover border-2 border-white shadow-md dark:border-neutral-700"
+              />
+              <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white shadow-xs">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              </span>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white flex items-center gap-1.5">
+                  <Camera className="h-4 w-4 text-blue-600" />
+                  Profilbild för CV & Ansökningar
+                </h3>
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
+                  Synkas till A4 PDF
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                Klicka på fotot du vill använda i ditt CV och utskrifter. Bilderna är hämtade från din lokala <code className="text-[11px] font-mono bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded">Assets</code>-mapp.
+              </p>
+
+              {/* Thumbnails grid */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {AVAILABLE_PHOTOS.map((p) => {
+                  const isSelected =
+                    (profile.photoUrl || "/profile/cv_rum_gron_vaxt.jpg") === p.path;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setProfile({ ...profile, photoUrl: p.path })}
+                      className={`group relative flex items-center gap-2 rounded-lg border p-1.5 transition-all text-left ${
+                        isSelected
+                          ? "border-blue-600 bg-blue-50/70 shadow-xs dark:border-blue-500 dark:bg-blue-950/50"
+                          : "border-neutral-200 bg-white hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800"
+                      }`}
+                    >
+                      <img
+                        src={p.path}
+                        alt={p.name}
+                        className="h-8 w-8 rounded-md object-cover"
+                      />
+                      <div className="pr-1">
+                        <div className="text-[11px] font-medium text-neutral-900 dark:text-white">
+                          {p.name}
+                        </div>
+                        <div className="text-[10px] text-neutral-400">
+                          {p.tag}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <span className="ml-auto flex h-2 w-2 rounded-full bg-blue-600" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>

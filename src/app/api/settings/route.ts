@@ -12,6 +12,9 @@ export async function GET() {
           targetRole: "Systemutvecklare / Fullstack",
           targetLocations: "Göteborg",
           workPreference: "any",
+          broadItSearch: true,
+          minScore: 50,
+          searchKeywords: "Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps",
         },
       });
     }
@@ -35,7 +38,15 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { geminiApiKey, targetRole, targetLocations, workPreference } = body;
+    const {
+      geminiApiKey,
+      targetRole,
+      targetLocations,
+      workPreference,
+      broadItSearch,
+      minScore,
+      searchKeywords,
+    } = body;
 
     const settings = await prisma.userSettings.upsert({
       where: { id: "default" },
@@ -44,6 +55,9 @@ export async function PUT(req: Request) {
         ...(targetRole !== undefined && { targetRole }),
         ...(targetLocations !== undefined && { targetLocations }),
         ...(workPreference !== undefined && { workPreference }),
+        ...(broadItSearch !== undefined && { broadItSearch: Boolean(broadItSearch) }),
+        ...(minScore !== undefined && { minScore: Number(minScore) }),
+        ...(searchKeywords !== undefined && { searchKeywords }),
       },
       create: {
         id: "default",
@@ -51,6 +65,9 @@ export async function PUT(req: Request) {
         targetRole: targetRole || "Systemutvecklare",
         targetLocations: targetLocations || "Göteborg",
         workPreference: workPreference || "any",
+        broadItSearch: broadItSearch !== undefined ? Boolean(broadItSearch) : true,
+        minScore: minScore !== undefined ? Number(minScore) : 50,
+        searchKeywords: searchKeywords || "Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps",
       },
     });
 

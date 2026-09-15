@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchJobTech } from "@/lib/jobtech";
+import { searchJobTech, OCCUPATION_FIELD_DATA_IT } from "@/lib/jobtech";
 import { searchLinkedInJobs } from "@/lib/linkedin";
 import { UnifiedJobHit } from "@/lib/types";
 
@@ -7,6 +7,8 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
+    const broadIt = searchParams.get("broadIt") !== "false";
+    const occupationField = broadIt ? OCCUPATION_FIELD_DATA_IT : undefined;
     const location = (searchParams.get("location") || "goteborg") as
       | "goteborg"
       | "commute"
@@ -21,7 +23,7 @@ export async function GET(req: Request) {
     let totalCount = 0;
 
     if (source === "jobtech") {
-      const data = await searchJobTech({ query, location, remote, limit, offset });
+      const data = await searchJobTech({ query, occupationField, location, remote, limit, offset });
       hits = (data.hits || []).map((h) => ({
         ...h,
         source: "jobtech" as const,
@@ -34,7 +36,7 @@ export async function GET(req: Request) {
     } else {
       // Source is "all": query both in parallel
       const [jobTechResult, linkedInResult] = await Promise.allSettled([
-        searchJobTech({ query, location, remote, limit, offset }),
+        searchJobTech({ query, occupationField, location, remote, limit, offset }),
         searchLinkedInJobs({ query, location, remote, limit: Math.min(limit, 15), offset }),
       ]);
 

@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Briefcase,
   MapPin,
+  Sliders,
+  Sparkles,
 } from "lucide-react";
 
 export function SettingsView() {
@@ -19,6 +21,11 @@ export function SettingsView() {
   const [targetRole, setTargetRole] = useState("Systemutvecklare / Fullstack");
   const [targetLocations, setTargetLocations] = useState("Göteborg");
   const [workPreference, setWorkPreference] = useState("any");
+  const [broadItSearch, setBroadItSearch] = useState(true);
+  const [minScore, setMinScore] = useState(50);
+  const [searchKeywords, setSearchKeywords] = useState(
+    "Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps"
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -35,6 +42,9 @@ export function SettingsView() {
           if (data.targetRole) setTargetRole(data.targetRole);
           if (data.targetLocations) setTargetLocations(data.targetLocations);
           if (data.workPreference) setWorkPreference(data.workPreference);
+          if (data.broadItSearch !== undefined) setBroadItSearch(data.broadItSearch);
+          if (data.minScore !== undefined) setMinScore(data.minScore);
+          if (data.searchKeywords) setSearchKeywords(data.searchKeywords);
         }
       } catch (err) {
         console.error("Failed to load settings:", err);
@@ -59,6 +69,9 @@ export function SettingsView() {
           targetRole,
           targetLocations,
           workPreference,
+          broadItSearch,
+          minScore,
+          searchKeywords,
         }),
       });
 
@@ -169,22 +182,48 @@ export function SettingsView() {
         </div>
 
         {/* Preferences */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-          <h3 className="mb-4 text-base font-bold text-neutral-900 dark:text-white">
-            Sök- och matchningspreferenser
-          </h3>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 space-y-5">
+          <div>
+            <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+              Sök- och matchningspreferenser
+            </h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+              Styr hur brett eller snävt JobScope ska bevaka annonser och vilken lägsta matchningsnivå som krävs för att automatiskt spara jobb.
+            </p>
+          </div>
+
+          {/* Broad IT Toggle */}
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={broadItSearch}
+                onChange={(e) => setBroadItSearch(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div className="text-xs">
+                <span className="font-semibold text-neutral-900 dark:text-white flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                  Bred IT-sökning som standard (Hela Data/IT-yrkesområdet)
+                </span>
+                <p className="text-neutral-600 dark:text-neutral-300 mt-1 leading-relaxed">
+                  Söker automatiskt över hela IT-spektrat (systemutveckling, applikationsdrift, teknisk support, QA/test, moln/DevOps och data). AI-matchningen bedömer överförbara tekniska färdigheter och problemlösningsförmåga generöst.
+                </p>
+              </div>
+            </label>
+          </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 flex items-center gap-1 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 <Briefcase className="h-3.5 w-3.5" />
-                Önskad huvudsaklig yrkesroll
+                Primär yrkestitel / fokusroll
               </label>
               <input
                 type="text"
                 value={targetRole}
                 onChange={(e) => setTargetRole(e.target.value)}
-                placeholder="Fullstack / Frontend Utvecklare"
+                placeholder="Fullstack / Systemutvecklare"
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
               />
             </div>
@@ -202,6 +241,50 @@ export function SettingsView() {
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
               />
             </div>
+          </div>
+
+          {/* Min Match Score Slider */}
+          <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                <Sliders className="h-3.5 w-3.5 text-neutral-400" />
+                Minsta ATS-matchningspoäng för automatisk sparning
+              </label>
+              <span className="rounded-lg bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                {minScore}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="30"
+              max="85"
+              step="5"
+              value={minScore}
+              onChange={(e) => setMinScore(Number(e.target.value))}
+              className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer dark:bg-neutral-700 accent-blue-600"
+            />
+            <div className="flex justify-between text-[11px] text-neutral-400 mt-1">
+              <span>30% (Mycket brett)</span>
+              <span>50% (Rekommenderat)</span>
+              <span>85% (Strikt specialist)</span>
+            </div>
+          </div>
+
+          {/* Search Keywords */}
+          <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
+            <label className="mb-1 block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              Bevakade sökord / teknikfokus
+            </label>
+            <input
+              type="text"
+              value={searchKeywords}
+              onChange={(e) => setSearchKeywords(e.target.value)}
+              placeholder="Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps"
+              className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+            />
+            <p className="mt-1 text-[11px] text-neutral-400">
+              Kommaseparerad lista av teknologier och IT-kategorier som bevakas.
+            </p>
           </div>
         </div>
 

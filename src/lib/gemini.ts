@@ -180,6 +180,21 @@ export async function analyzeJobMatchWithAI(
 Du är en senior teknisk rekryterare och ATS-expert.
 Gör en objektiv matchningsanalys mellan kandidatens Master-CV och en specifik jobbannons.
 
+VIKTIG PROFILKONTEXT & SÖKINSTÄLLNING:
+- Kandidaten har en bred teknisk grund (C#/.NET, Python, SQL, REST API-design, Docker/Linux, AI/RAG, databaser) kombinerat med över 10 års beprövad operativ ledar-, samordnings- och drifterfarenhet från restaurangbranschen.
+- Kandidaten söker BRETT och är fullt öppen för hela spektrumet av roller inom IT och tech:
+  * Mjukvaruutveckling (backend, frontend, fullstack, junior utvecklare, systemutvecklare)
+  * Applikationsdrift, systemförvaltning, IT-tekniker och drifttekniker
+  * IT-support, servicedesk, applikationssupport och teknisk kundsupport
+  * Testning, kvalitetssäkring (QA) och mjukvaruverifiering
+  * DevOps, moln (Cloud), infrastruktur och nätverk
+  * Datateknik, dataanalys och AI/automation
+  * IT-konsult och teknisk projektkoordinering
+- BEDÖMNINGSPRINCIP FÖR BREDA IT-ROLLER:
+  * Sätt INTE ett lågt matchningsscore enbart för att rollens titel inte heter exakt "Systemutvecklare" eller "AI-utvecklare".
+  * Om rollen gäller t.ex. IT-support, applikationsdrift, testare eller teknisk samordnare: värdera kandidatens systemförståelse, felsökningsförmåga, programmeringslogik, SQL-vana, Linux/Docker-kunskap samt 10+ års stresstålighet och problemlösning som mycket starka och direkt överförbara meriter.
+  * Beräkna en rättvis och realistisk matchningsprocent (0-100) baserat på kärnkrav och hur väl kandidatens samlade tekniska grund och inlärningsförmåga passar rollen.
+
 JOBBANNONS:
 Titel: ${job.title}
 Företag: ${job.company}
@@ -219,9 +234,9 @@ Utbildning: ${JSON.stringify(
   )}
 
 Instruktioner:
-- Beräkna en realistisk matchningsprocent (0-100) baserat på kärnkrav, relevanta teknologier och kandidatens samlade kompetens (inklusive arbetslivserfarenhet, praktiska portfolioprojekt och utbildning).
+- Beräkna en realistisk och rättvis matchningsprocent (0-100) baserat på kärnkrav, relevanta teknologier och kandidatens samlade IT-kompetens.
 - Identifiera starka matchningar (kompetenser och teknologier kandidaten har som annonsen uttryckligen söker).
-- Identifiera överförbara färdigheter (kandidaten har snarlik erfarenhet eller projekt som kan appliceras).
+- Identifiera överförbara färdigheter (kandidaten har snarlik erfarenhet, projekt eller teknisk grund som kan appliceras).
 - Identifiera saknade nyckelord/krav som kandidaten antingen saknar eller inte har explicit nämnt.
 - Ge 2-4 konkreta råd för hur ansökan bäst vinklas för denna roll.
 

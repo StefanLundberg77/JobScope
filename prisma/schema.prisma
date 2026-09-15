@@ -24,6 +24,7 @@ model MasterProfile {
   languages    String   @default("[]")
   projects     String   @default("[]")
   rawText      String   @default("")
+  photoUrl     String   @default("/profile/cv_rum_gron_vaxt.jpg")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -70,6 +71,9 @@ model UserSettings {
   targetRole      String   @default("Systemutvecklare")
   targetLocations String   @default("Göteborg")
   workPreference  String   @default("any")
+  broadItSearch   Boolean  @default(true)
+  minScore        Int      @default(50)
+  searchKeywords  String   @default("Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

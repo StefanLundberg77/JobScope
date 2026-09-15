@@ -23,11 +23,22 @@ interface JobSearchViewProps {
   onRefreshSavedCount: () => void;
 }
 
+const QUICK_IT_FILTERS = [
+  { label: "🌐 Alla IT-jobb", query: "", broad: true },
+  { label: "💻 C# / .NET", query: "C# .NET", broad: true },
+  { label: "🐍 Python & AI", query: "Python AI", broad: true },
+  { label: "⚡ Fullstack", query: "Fullstack", broad: true },
+  { label: "🛠️ Support & Drift", query: "Support Drift", broad: true },
+  { label: "☁️ DevOps & Cloud", query: "DevOps Cloud", broad: true },
+  { label: "🧪 Test & QA", query: "Test QA", broad: true },
+];
+
 export function JobSearchView({
   onOpenTailorStudio,
   onRefreshSavedCount,
 }: JobSearchViewProps) {
-  const [query, setQuery] = useState("Fullstack");
+  const [query, setQuery] = useState("");
+  const [broadIt, setBroadIt] = useState(true);
   const [location, setLocation] = useState<
     "goteborg" | "commute" | "region_14" | "all"
   >("goteborg");
@@ -44,16 +55,22 @@ export function JobSearchView({
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
   // Search function
-  const handleSearch = async (overrideQuery?: string, overrideSource?: "all" | "linkedin" | "jobtech") => {
+  const handleSearch = async (
+    overrideQuery?: string,
+    overrideSource?: "all" | "linkedin" | "jobtech",
+    overrideBroadIt?: boolean
+  ) => {
     setLoading(true);
     try {
       const q = overrideQuery !== undefined ? overrideQuery : query;
       const s = overrideSource !== undefined ? overrideSource : source;
+      const b = overrideBroadIt !== undefined ? overrideBroadIt : broadIt;
       const params = new URLSearchParams({
         q,
         location,
         remote: remoteOnly ? "true" : "false",
         source: s,
+        broadIt: b ? "true" : "false",
         limit: "25",
       });
 
@@ -84,7 +101,7 @@ export function JobSearchView({
         setSavedJobIds(map);
       })
       .catch(() => {});
-  }, [location, remoteOnly, source]);
+  }, [location, remoteOnly, source, broadIt]);
 
   // Save job and optionally navigate to tailor studio
   const handleSaveJob = async (hit: UnifiedJobHit, openStudio = false) => {
@@ -167,7 +184,7 @@ export function JobSearchView({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Sök jobb (t.ex. Fullstack, Frontend, React, Python)..."
+              placeholder="Sök IT-jobb (lämna tomt för alla IT-roller, eller t.ex. C#, Python, Support, DevOps)..."
               className="w-full rounded-xl border border-neutral-300 pl-11 pr-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             />
           </div>
@@ -200,6 +217,34 @@ export function JobSearchView({
             <span className="hidden md:inline">Kör daglig bevakning</span>
           </button>
         </form>
+
+        {/* Quick IT Focus Chips */}
+        <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-medium text-neutral-400 mr-1 flex items-center gap-1">
+            <Sparkles className="h-3 w-3 text-blue-500" /> Snabbval:
+          </span>
+          {QUICK_IT_FILTERS.map((f) => {
+            const isCurrent = query === f.query && (f.broad === undefined || broadIt === f.broad);
+            return (
+              <button
+                key={f.label}
+                type="button"
+                onClick={() => {
+                  setQuery(f.query);
+                  if (f.broad !== undefined) setBroadIt(f.broad);
+                  handleSearch(f.query, undefined, f.broad ?? broadIt);
+                }}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
+                  isCurrent
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                }`}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Scan Message Notification */}
         {scanMessage && (
@@ -307,16 +352,32 @@ export function JobSearchView({
             Hela Sverige
           </button>
 
-          <label className="ml-auto flex items-center gap-2 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300">
-            <input
-              type="checkbox"
-              checked={remoteOnly}
-              onChange={(e) => setRemoteOnly(e.target.checked)}
-              className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
-            />
-            <Globe className="h-3.5 w-3.5 text-blue-500" />
-            Endast Distans / Remote
-          </label>
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800">
+              <input
+                type="checkbox"
+                checked={broadIt}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setBroadIt(val);
+                  handleSearch(undefined, undefined, val);
+                }}
+                className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>Bred Data/IT-sökning</span>
+            </label>
+
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300">
+              <input
+                type="checkbox"
+                checked={remoteOnly}
+                onChange={(e) => setRemoteOnly(e.target.checked)}
+                className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+              />
+              <Globe className="h-3.5 w-3.5 text-blue-500" />
+              Distans / Remote
+            </label>
+          </div>
         </div>
       </div>
 

@@ -56,7 +56,7 @@ export function isLinkedInUrl(url: string): boolean {
 export async function searchLinkedInJobs(
   params: LinkedInSearchParams
 ): Promise<LinkedInSearchResponse> {
-  const query = params.query?.trim() || "Systemutvecklare";
+  const query = params.query?.trim() || "IT OR Utvecklare OR Developer";
   const location = mapLocationToLinkedIn(params.location);
   const start = params.offset ?? 0;
 

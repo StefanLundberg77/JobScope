@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { searchJobTech, fetchJobTechAd } from "@/lib/jobtech";
+import { searchJobTech, fetchJobTechAd, OCCUPATION_FIELD_DATA_IT } from "@/lib/jobtech";
 import { searchLinkedInJobs, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
 import { parseJobAdText } from "@/lib/parser";
@@ -9,14 +9,15 @@ import { MasterProfileData } from "@/lib/types";
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const minScoreThreshold = body.minScore ?? 60; // Auto-save if matchScore >= 60%
 
     // 1. Get UserSettings
     const settings = await prisma.userSettings.findUnique({
       where: { id: "default" },
     });
 
-    const query = body.query || settings?.targetRole || "Systemutvecklare";
+    const minScoreThreshold = body.minScore ?? settings?.minScore ?? 50;
+    const broadIt = body.broadIt ?? settings?.broadItSearch ?? true;
+    const query = body.query || (!broadIt ? (settings?.targetRole || "Systemutvecklare") : "");
     const location = body.location || (settings?.targetLocations?.toLowerCase().includes("göteborg") ? "goteborg" : "all");
     const remote = body.remote ?? (settings?.workPreference === "remote");
 
@@ -45,8 +46,19 @@ export async function POST(req: Request) {
 
     // 3. Search both LinkedIn & JobTech in parallel
     const [jobTechRes, linkedInRes] = await Promise.allSettled([
-      searchJobTech({ query, location, remote, limit: 15 }),
-      searchLinkedInJobs({ query, location, remote, limit: 15 }),
+      searchJobTech({
+        query: query || undefined,
+        occupationField: broadIt ? OCCUPATION_FIELD_DATA_IT : undefined,
+        location,
+        remote,
+        limit: 25,
+      }),
+      searchLinkedInJobs({
+        query: query || (broadIt ? "IT OR Utvecklare OR Developer" : (settings?.targetRole || "Systemutvecklare")),
+        location,
+        remote,
+        limit: 20,
+      }),
     ]);
 
     const jtHits = jobTechRes.status === "fulfilled" ? jobTechRes.value.hits || [] : [];
@@ -98,8 +110,8 @@ export async function POST(req: Request) {
     const savedJobs = [];
     const apiKey = await getGeminiApiKey();
 
-    // Process top candidates (limit to max 6 to keep response fast and avoid rate limits)
-    const toProcess = candidates.slice(0, 6);
+    // Process top candidates (limit to max 10 to evaluate diverse IT roles without hitting rate limits)
+    const toProcess = candidates.slice(0, 10);
 
     for (const cand of toProcess) {
       try {

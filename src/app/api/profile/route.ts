@@ -46,6 +46,7 @@ export async function GET() {
       languages: JSON.parse(profile.languages || "[]"),
       projects: JSON.parse(profile.projects || "[]"),
       rawText: profile.rawText,
+      photoUrl: profile.photoUrl || "/profile/cv_rum_gron_vaxt.jpg",
     };
 
     return NextResponse.json(parsed);
@@ -90,6 +91,7 @@ export async function PUT(req: Request) {
           projects: JSON.stringify(data.projects),
         }),
         ...(data.rawText !== undefined && { rawText: data.rawText }),
+        ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
       },
       create: {
         id: "default",
@@ -102,6 +104,7 @@ export async function PUT(req: Request) {
         website: data.website || "",
         linkedin: data.linkedin || "",
         github: data.github || "",
+        photoUrl: data.photoUrl || "/profile/cv_rum_gron_vaxt.jpg",
         experiences: JSON.stringify(data.experiences || []),
         education: JSON.stringify(data.education || []),
         skills: JSON.stringify(data.skills || []),
@@ -122,6 +125,7 @@ export async function PUT(req: Request) {
       website: updated.website,
       linkedin: updated.linkedin,
       github: updated.github,
+      photoUrl: updated.photoUrl || "/profile/cv_rum_gron_vaxt.jpg",
       experiences: JSON.parse(updated.experiences || "[]"),
       education: JSON.parse(updated.education || "[]"),
       skills: JSON.parse(updated.skills || "[]"),

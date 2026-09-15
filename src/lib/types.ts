@@ -57,6 +57,7 @@ export interface MasterProfileData {
   languages: Language[];
   projects: Project[];
   rawText?: string;
+  photoUrl?: string;
 }
 
 export interface MatchAnalysis {

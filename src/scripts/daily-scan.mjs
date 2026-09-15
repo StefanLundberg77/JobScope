@@ -17,7 +17,7 @@ async function runScan() {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ minScore: 60 }),
+      body: JSON.stringify({}),
     });
 
     if (!res.ok) {
