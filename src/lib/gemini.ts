@@ -288,6 +288,8 @@ Svara EXAKT med detta JSON-schema:
   return JSON.parse(text);
 }
 
+import { detectLanguage } from "./languageUtils";
+
 /**
  * Detects whether the primary language of a job posting is English or Swedish.
  *
@@ -295,30 +297,7 @@ Svara EXAKT med detta JSON-schema:
  * @returns 'en' if English is the dominant language, otherwise 'sv'
  */
 export function detectJobLanguage(text: string): "sv" | "en" {
-  const sample = text.toLowerCase().slice(0, 3000);
-  const swedishWords = [
-    "och", "att", "som", "på", "för", "med", "är", "av", "till", "ett", "den",
-    "vi", "du", "har", "arbete", "erfarenhet", "utvecklare", "krav", "meriterande", "tjänsten", "ansökan"
-  ];
-  const englishWords = [
-    "and", "the", "to", "in", "for", "with", "is", "of", "you", "we", "are",
-    "have", "experience", "developer", "requirements", "skills", "responsibilities", "looking", "role", "position"
-  ];
-
-  let svScore = 0;
-  let enScore = 0;
-
-  for (const w of swedishWords) {
-    const matches = sample.match(new RegExp(`\\b${w}\\b`, "gi"));
-    if (matches) svScore += matches.length;
-  }
-
-  for (const w of englishWords) {
-    const matches = sample.match(new RegExp(`\\b${w}\\b`, "gi"));
-    if (matches) enScore += matches.length;
-  }
-
-  return enScore > svScore ? "en" : "sv";
+  return detectLanguage(text);
 }
 
 /**

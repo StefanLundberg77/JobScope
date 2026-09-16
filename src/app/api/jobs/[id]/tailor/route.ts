@@ -90,6 +90,7 @@ export async function POST(
         tailoredExperiences: JSON.stringify(tailored.tailoredExperiences),
         tailoredSkills: JSON.stringify(tailored.tailoredSkills),
         coverLetter: tailored.coverLetter,
+        language: tailored.language || "sv",
         diffNotes: JSON.stringify(tailored.diffNotes),
       },
     });
@@ -134,6 +135,7 @@ export async function PUT(
       tailoredExperiences,
       tailoredSkills,
       coverLetter,
+      language,
       notes,
     } = body;
 
@@ -150,6 +152,7 @@ export async function PUT(
             tailoredSkills: JSON.stringify(tailoredSkills),
           }),
           ...(coverLetter !== undefined && { coverLetter }),
+          ...(language !== undefined && { language }),
           ...(notes !== undefined && { notes }),
         },
       });
@@ -172,6 +175,7 @@ export async function PUT(
               tailoredSkills: JSON.stringify(tailoredSkills),
             }),
             ...(coverLetter !== undefined && { coverLetter }),
+            ...(language !== undefined && { language }),
             ...(notes !== undefined && { notes }),
           },
         });
@@ -183,6 +187,7 @@ export async function PUT(
             tailoredExperiences: JSON.stringify(tailoredExperiences || []),
             tailoredSkills: JSON.stringify(tailoredSkills || []),
             coverLetter: coverLetter || "",
+            language: language || "sv",
             notes: notes || "",
           },
         });

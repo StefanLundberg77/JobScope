@@ -30,6 +30,13 @@ import {
   MatchAnalysis,
   ApplicationStatus,
 } from "@/lib/types";
+import {
+  detectLanguage,
+  translateJobTitle,
+  translateLocation,
+  translateEducation,
+  translateSkillCategory,
+} from "@/lib/languageUtils";
 
 /**
  * Available profile photos for CV layout customization.
@@ -152,6 +159,13 @@ export function TailorStudio({
             setNotes(app.notes || "");
             if (app.language === "en" || app.language === "sv") {
               setActiveLanguage(app.language);
+              setLanguageOption(app.language);
+            } else if (app.tailoredSummary || app.coverLetter) {
+              const inferred = detectLanguage(
+                `${app.tailoredSummary || ""} ${app.coverLetter || ""}`
+              );
+              setActiveLanguage(inferred);
+              setLanguageOption(inferred);
             }
           }
         }
@@ -230,6 +244,7 @@ export function TailorStudio({
           tailoredExperiences,
           tailoredSkills,
           coverLetter,
+          language: activeLanguage,
           notes,
         }),
       });
@@ -366,25 +381,31 @@ export function TailorStudio({
             </button>
             <button
               type="button"
-              onClick={() => setLanguageOption("sv")}
+              onClick={() => {
+                setLanguageOption("sv");
+                setActiveLanguage("sv");
+              }}
               className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                 languageOption === "sv"
                   ? "bg-white text-blue-600 shadow-xs dark:bg-neutral-900 dark:text-blue-400"
                   : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
               }`}
-              title="Generera på svenska med jordnära tech-ton"
+              title="Generera och visa på svenska med jordnära tech-ton"
             >
               🇸🇪 SV
             </button>
             <button
               type="button"
-              onClick={() => setLanguageOption("en")}
+              onClick={() => {
+                setLanguageOption("en");
+                setActiveLanguage("en");
+              }}
               className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                 languageOption === "en"
                   ? "bg-white text-blue-600 shadow-xs dark:bg-neutral-900 dark:text-blue-400"
                   : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
               }`}
-              title="Generera på engelska med internationell impact-ton"
+              title="Generera och visa på engelska med internationell impact-ton"
             >
               🇬🇧 EN
             </button>
@@ -753,32 +774,65 @@ export function TailorStudio({
           {/* Controls toolbar */}
           <div className="no-print space-y-3 rounded-2xl border border-neutral-200 bg-neutral-100/80 p-4 dark:border-neutral-800 dark:bg-neutral-800">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {/* Document switcher */}
-              <div className="flex items-center rounded-xl bg-white p-1 shadow-xs dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">
-                <button
-                  type="button"
-                  onClick={() => setPrintDoc("cv")}
-                  className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                    printDoc === "cv"
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
-                  }`}
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  Skräddarsytt CV (A4)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPrintDoc("letter")}
-                  className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                    printDoc === "letter"
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
-                  }`}
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  Personligt Brev (A4)
-                </button>
+              {/* Document switcher & Language switcher */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center rounded-xl bg-white p-1 shadow-xs dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">
+                  <button
+                    type="button"
+                    onClick={() => setPrintDoc("cv")}
+                    className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                      printDoc === "cv"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    }`}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    Skräddarsytt CV (A4)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintDoc("letter")}
+                    className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                      printDoc === "letter"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    }`}
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    Personligt Brev (A4)
+                  </button>
+                </div>
+
+                {/* Direct Document Presentation Language Toggle */}
+                <div className="flex items-center rounded-xl bg-white p-1 shadow-xs dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">
+                  <span className="px-2 text-[11px] font-semibold text-neutral-400">
+                    Språk:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveLanguage("sv")}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                      activeLanguage === "sv"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    }`}
+                    title="Visa alla rubriker och layoutfält på svenska"
+                  >
+                    🇸🇪 SV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveLanguage("en")}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                      activeLanguage === "en"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    }`}
+                    title="Display all headings, credentials, and layout fields in English"
+                  >
+                    🇬🇧 EN
+                  </button>
+                </div>
               </div>
 
               {/* Print CTA */}
@@ -857,13 +911,15 @@ export function TailorStudio({
                     {masterProfile?.fullName || "Stefan Lundberg"}
                   </h1>
                   <div className="text-sm font-semibold text-neutral-700 mt-0.5">
-                    {masterProfile?.title || job.title}
+                    {translateJobTitle(masterProfile?.title || job.title, activeLanguage)}
                   </div>
 
                   <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-600">
                     {masterProfile?.email && <span>{masterProfile.email}</span>}
                     {masterProfile?.phone && <span>• {masterProfile.phone}</span>}
-                    {masterProfile?.location && <span>• {masterProfile.location}</span>}
+                    {masterProfile?.location && (
+                      <span>• {translateLocation(masterProfile.location, activeLanguage)}</span>
+                    )}
                     {masterProfile?.website && <span>• {masterProfile.website}</span>}
                     {masterProfile?.linkedin && <span>• {masterProfile.linkedin}</span>}
                     {masterProfile?.github && <span>• {masterProfile.github}</span>}
@@ -937,7 +993,7 @@ export function TailorStudio({
                   ).map((cat, ci) => (
                     <div key={ci}>
                       <span className="font-semibold text-neutral-900">
-                        {cat.category}:{" "}
+                        {translateSkillCategory(cat.category, activeLanguage)}:{" "}
                       </span>
                       <span className="text-neutral-700">
                         {cat.items?.join(", ")}
@@ -954,22 +1010,25 @@ export function TailorStudio({
                     {LABELS[activeLanguage].education}
                   </h2>
                   <div className="space-y-2">
-                    {masterProfile.education.map((edu, ei) => (
-                      <div key={ei} className="flex justify-between text-xs">
-                        <div>
-                          <span className="font-bold">{edu.degree}</span> —{" "}
-                          <span>{edu.school}</span>
-                          {edu.fieldOfStudy && (
-                            <span className="text-neutral-600 block text-[11px]">
-                              {edu.fieldOfStudy}
-                            </span>
-                          )}
+                    {masterProfile.education.map((rawEdu, ei) => {
+                      const edu = translateEducation(rawEdu, activeLanguage);
+                      return (
+                        <div key={ei} className="flex justify-between text-xs">
+                          <div>
+                            <span className="font-bold">{edu.degree}</span> —{" "}
+                            <span>{edu.school}</span>
+                            {edu.fieldOfStudy && (
+                              <span className="text-neutral-600 block text-[11px]">
+                                {edu.fieldOfStudy}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-neutral-500 text-[11px]">
+                            {edu.startDate} - {edu.endDate}
+                          </span>
                         </div>
-                        <span className="text-neutral-500 text-[11px]">
-                          {edu.startDate} - {edu.endDate}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -985,13 +1044,18 @@ export function TailorStudio({
                       {masterProfile?.fullName || "Stefan Lundberg"}
                     </h1>
                     <div className="text-sm font-medium text-neutral-700 mt-0.5">
-                      {masterProfile?.title || (activeLanguage === "en" ? "Software Developer & AI Engineer" : "Systemutvecklare & AI-utvecklare")}
+                      {translateJobTitle(
+                        masterProfile?.title || (activeLanguage === "en" ? "Software Developer & AI Engineer" : "Systemutvecklare & AI-utvecklare"),
+                        activeLanguage
+                      )}
                     </div>
 
                     <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-600">
                       {masterProfile?.email && <span>{masterProfile.email}</span>}
                       {masterProfile?.phone && <span>• {masterProfile.phone}</span>}
-                      {masterProfile?.location && <span>• {masterProfile.location}</span>}
+                      {masterProfile?.location && (
+                        <span>• {translateLocation(masterProfile.location, activeLanguage)}</span>
+                      )}
                       {masterProfile?.website && <span>• {masterProfile.website}</span>}
                       {masterProfile?.linkedin && <span>• {masterProfile.linkedin}</span>}
                     </div>

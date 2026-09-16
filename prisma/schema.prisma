@@ -59,6 +59,7 @@ model TailoredApplication {
   tailoredExperiences String     @default("[]")
   tailoredSkills      String     @default("[]")
   coverLetter         String     @default("")
+  language            String     @default("sv")
   diffNotes           String?
   notes               String?
   createdAt           DateTime   @default(now())
