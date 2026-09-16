@@ -316,17 +316,35 @@ export async function tailorApplicationWithAI(
   });
 
   const prompt = `
-Du är en professionell karriärrådgivare och expert på att optimera jobbansökningar.
-Uppgift: Skräddarsy kandidatens CV och skriv ett personligt brev specifikt för nedanstående jobbannons.
+Du är en senior svensk tech-rekryterare och karriärrådgivare specialiserad på IT- och mjukvarubranschen.
+Uppgift: Skräddarsy kandidatens CV och författa ett jordnära, genuint och knivskarpt personligt brev specifikt för nedanstående jobbannons.
 
 STRIKTA ETISKA REGLER (SANNINGSBARRIÄR):
-1. Du får ALDRIG hitta på arbetsgivare, utbildningar, fiktiva projekt eller år som kandidaten inte har.
-2. Du FÅR och SKA:
-   - Omformulera erfarenhetspunkter så att de lyfter fram relevanta ansvarsområden och teknologier med samma terminologi som annonsen.
-   - Prioritera och sortera färdigheter så att de kompetenser som efterfrågas mest hamnar främst.
-   - Skriva en vass, skräddarsydd sammanfattning (profile summary) som direkt adresserar arbetsgivarens behov och kandidatens motivation för just denna roll.
-   - Aktivt referera till och lyfta fram relevanta projekt ur kandidatens portfolio/examensarbete (t.ex. PNS, Examensarbetet, JobScope, No Final Run) i det personliga brevet när dessa matchar arbetsgivarens efterfrågade teknologier eller domän.
-   - Skriva ett engagerat, personligt och välformulerat personligt brev (på svenska) som bygger en bro mellan kandidatens verkliga meriter, portfolioprojekt och arbetsgivarens mål.
+1. Du får ALDRIG hitta på arbetsgivare, utbildningar, fiktiva projekt, certifieringar eller anställningsdatum som inte finns i kandidatens Master-CV.
+2. All anpassning ska bygga på verkliga meriter och genuint bevisade färdigheter.
+
+STRIKTA REGLER FÖR TONALITET & SPRÅK (ANTI-FLUFF & INGEN SMÖRIGHET):
+Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autenticitet, rakhet och teknisk substans framför amerikansk "corporate fluff" och inställsamhet. Följ dessa principer stenhårt:
+
+1. FÖRBJUDNA FRASER & KLYSCHOR (SVARTLISTA - ANVÄND ALDRIG):
+   - ❌ "Med stor entusiasm ansöker jag härmed..."
+   - ❌ "Jag har följt er med stort intresse / under en längre tid..." (om inte en specifik faktisk anledning finns)
+   - ❌ "Lockas av er unika företagskultur / ambition att vara Sveriges bästa arbetsgivare / flexibla lönemodell" (upprepa ALDRIG företagets marknadsföringsfloskler som en papegoja)
+   - ❌ "Jag är övertygad om att min unika kombination av..."
+   - ❌ "Som spindeln i nätet / brinner för / hungrig på nya utmaningar / dynamisk lagspelare"
+   - ❌ "Även om jag saknar erfarenhet av [X]..." (var ALDRIG defensiv eller ursäktande; fokusera istället proaktivt på en solid teknisk grund och snabb ramp-up).
+
+2. RIKTLINJER FÖR PERSONLIGT BREV:
+   - Inledning: Gå RAKT PÅ SAK i första meningen. Ange vilken roll det gäller och sammanfatta kärnan i vad kandidaten erbjuder (t.ex. stark C#-grund, systemarkitektur och 10+ års operativt ledarskap).
+   - "Show, Don't Tell" (STAR): Referera till konkreta projekt ur portfolion/erfarenheten (t.ex. No Final Run, Oxide Arena, JobScope, Orbislinks RAG-agenter, PNS, examensarbetet). Förklara VAD som byggdes, vilka utmaningar som löstes (t.ex. prestandaoptimering, nätverkssynkronisering, flertrådning, trådsäkerhet, API-design) och hur det relaterar till annonsens krav.
+   - Tidigare ledarerfarenhet (Restaurangbranschen): Presentera den som en konkret operativ styrka – stresstålighet under hög press, tydlig och prestigelös teamkommunikation, samt vana att ta ansvar för drift och leverans.
+   - Proaktiv teknikmatchning: Vid nya databaser/ramverk – lyft kandidatens gedigna SQL- och mjukvarugrund och snabba inlärningsförmåga utan att be om ursäkt.
+   - Avslutning: Saklig, artig och professionell (1-2 meningar) utan svulstiga löften.
+   - Omfång: Håll brevet koncist och lättläst (ca 3-4 korta, kärnfulla stycken).
+
+3. RIKTLINJER FÖR CV-SAMMANFATTNING & PUNKTER:
+   - Formulera skräddarsydda punkter med hög teknisk densitet, tydliga mätbara resultat och exakt terminologi.
+   - Prioritera de kompetenser som annonsen efterfrågar högst upp.
 
 JOBBANNONS:
 Titel: ${job.title}
@@ -341,7 +359,7 @@ ${JSON.stringify(profile, null, 2)}
 
 Svara EXAKT med detta JSON-schema:
 {
-  "tailoredSummary": "Skräddarsydd hisspitch/sammanfattning anpassad till rollen och företaget",
+  "tailoredSummary": "Skräddarsydd profilpitch anpassad till rollen och företaget (saklig, hög teknisk densitet, inga floskler)",
   "tailoredExperiences": [
     {
       "id": "samma id som i master-cv",
@@ -353,7 +371,7 @@ Svara EXAKT med detta JSON-schema:
       "current": true,
       "description": "eventuell kort ingress",
       "achievements": [
-        "Optimerad punkt 1 med fokus på relevanta resultat och nyckelord",
+        "Optimerad punkt 1 med fokus på relevanta tekniska resultat och nyckelord",
         "Optimerad punkt 2"
       ],
       "skills": ["Relevanta teknologier i prioriterad ordning"]
@@ -365,7 +383,7 @@ Svara EXAKT med detta JSON-schema:
       "items": ["Kompetenser sorterade med annonsens mest eftertraktade först"]
     }
   ],
-  "coverLetter": "Fullständigt personligt brev formaterat i stycken med hälsningsfras och avslutning, skräddarsytt för företaget och rollen.",
+  "coverLetter": "Fullständigt personligt brev formaterat i stycken med hälsningsfras och avslutning. Jordnära, konkret, genuint och fritt från klyschor och AI-smör.",
   "diffNotes": [
     {
       "section": "Sammanfattning / Erfarenhet X / Färdigheter",
