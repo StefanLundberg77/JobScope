@@ -167,6 +167,7 @@ const profileData = {
         "React",
         "Next.js",
         "Unity Engine",
+        "Entity Framework Core",
         "Dapper",
         "Alembic",
         "Node.js",
@@ -197,6 +198,9 @@ const profileData = {
         "VS Code",
         "DBeaver",
         "SSMS",
+        "Azure Data Studio",
+        "DataGrip",
+        "phpMyAdmin",
         "Dagster",
         "Snowflake"
       ]
