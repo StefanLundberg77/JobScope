@@ -45,6 +45,36 @@ const AVAILABLE_PHOTOS = [
 ];
 
 /**
+ * Bilingual UI labels for CV and cover letter views.
+ */
+const LABELS = {
+  sv: {
+    summary: "Sammanfattning",
+    experience: "Arbetslivserfarenhet",
+    skills: "Teknisk kompetens & Färdigheter",
+    education: "Utbildning",
+    projects: "Utvalda Projekt & Examensarbete",
+    languages: "Språk",
+    present: "Pågående",
+    recipientAtt: "Att: Rekryteringsteamet / ",
+    application: "Ansökan:",
+    signOff: "Med vänliga hälsningar,",
+  },
+  en: {
+    summary: "Professional Summary",
+    experience: "Professional Experience",
+    skills: "Technical Skills & Competencies",
+    education: "Education",
+    projects: "Featured Projects & Thesis",
+    languages: "Languages",
+    present: "Present",
+    recipientAtt: "Attn: Hiring Team / ",
+    application: "Application:",
+    signOff: "Sincerely,",
+  },
+};
+
+/**
  * Props for the TailorStudio component.
  */
 interface TailorStudioProps {
@@ -56,7 +86,7 @@ interface TailorStudioProps {
 /**
  * TailorStudio provides an interactive workspace for reviewing AI-driven resume tailoring,
  * examining side-by-side diff rationales, refining cover letters, and exporting ATS-optimized
- * A4 resumes and cover letters for print/PDF.
+ * A4 resumes and cover letters for print/PDF with full bilingual (SV/EN) support.
  */
 export function TailorStudio({
   jobId,
@@ -72,6 +102,10 @@ export function TailorStudio({
   const [copiedLetter, setCopiedLetter] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"cv" | "letter" | "print" | "jobinfo">("cv");
+
+  // Language options: auto-detect or force Swedish/English
+  const [languageOption, setLanguageOption] = useState<"auto" | "sv" | "en">("auto");
+  const [activeLanguage, setActiveLanguage] = useState<"sv" | "en">("sv");
 
   // Tailored Application State
   const [applicationId, setApplicationId] = useState<string | null>(null);
@@ -116,6 +150,9 @@ export function TailorStudio({
             setCoverLetter(app.coverLetter || "");
             setDiffNotes(app.diffNotes || []);
             setNotes(app.notes || "");
+            if (app.language === "en" || app.language === "sv") {
+              setActiveLanguage(app.language);
+            }
           }
         }
 
@@ -142,6 +179,8 @@ export function TailorStudio({
     try {
       const res = await fetch(`/api/jobs/${jobId}/tailor`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: languageOption }),
       });
 
       const data = await res.json();
@@ -156,6 +195,9 @@ export function TailorStudio({
       setCoverLetter(data.coverLetter);
       setDiffNotes(data.diffNotes || []);
       setMatchAnalysis(data.matchAnalysis);
+      if (data.language === "en" || data.language === "sv") {
+        setActiveLanguage(data.language);
+      }
 
       if (job) {
         setJob({
@@ -307,6 +349,46 @@ export function TailorStudio({
               Ansökningssida <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
+
+          {/* Language Selector Toggle */}
+          <div className="flex items-center rounded-lg bg-neutral-100 p-0.5 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+            <button
+              type="button"
+              onClick={() => setLanguageOption("auto")}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                languageOption === "auto"
+                  ? "bg-white text-blue-600 shadow-xs dark:bg-neutral-900 dark:text-blue-400"
+                  : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+              }`}
+              title="Känner automatiskt av annonsens språk"
+            >
+              ⚡ Auto
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguageOption("sv")}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                languageOption === "sv"
+                  ? "bg-white text-blue-600 shadow-xs dark:bg-neutral-900 dark:text-blue-400"
+                  : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+              }`}
+              title="Generera på svenska med jordnära tech-ton"
+            >
+              🇸🇪 SV
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguageOption("en")}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                languageOption === "en"
+                  ? "bg-white text-blue-600 shadow-xs dark:bg-neutral-900 dark:text-blue-400"
+                  : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+              }`}
+              title="Generera på engelska med internationell impact-ton"
+            >
+              🇬🇧 EN
+            </button>
+          </div>
 
           <button
             onClick={handleGenerateTailored}
@@ -802,7 +884,7 @@ export function TailorStudio({
               {/* Profile Summary */}
               <div className="mt-6">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-900 border-b border-neutral-200 pb-1 mb-2">
-                  Sammanfattning
+                  {LABELS[activeLanguage].summary}
                 </h2>
                 <p className="text-xs leading-relaxed text-neutral-800">
                   {tailoredSummary || masterProfile?.summary}
@@ -812,7 +894,7 @@ export function TailorStudio({
               {/* Experience */}
               <div className="mt-6">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-900 border-b border-neutral-200 pb-1 mb-3">
-                  Arbetslivserfarenhet
+                  {LABELS[activeLanguage].experience}
                 </h2>
                 <div className="space-y-4">
                   {(tailoredExperiences.length > 0
@@ -825,7 +907,7 @@ export function TailorStudio({
                           {exp.role} — {exp.company}
                         </span>
                         <span className="text-[11px] text-neutral-500">
-                          {exp.startDate} - {exp.endDate || "Pågående"}
+                          {exp.startDate} - {exp.endDate || LABELS[activeLanguage].present}
                         </span>
                       </div>
                       {exp.description && (
@@ -846,7 +928,7 @@ export function TailorStudio({
               {/* Skills */}
               <div className="mt-6">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-900 border-b border-neutral-200 pb-1 mb-2">
-                  Teknisk kompetens & Färdigheter
+                  {LABELS[activeLanguage].skills}
                 </h2>
                 <div className="space-y-1.5 text-xs">
                   {(tailoredSkills.length > 0
@@ -869,7 +951,7 @@ export function TailorStudio({
               {masterProfile?.education && masterProfile.education.length > 0 && (
                 <div className="mt-6">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-900 border-b border-neutral-200 pb-1 mb-2">
-                    Utbildning
+                    {LABELS[activeLanguage].education}
                   </h2>
                   <div className="space-y-2">
                     {masterProfile.education.map((edu, ei) => (
@@ -903,7 +985,7 @@ export function TailorStudio({
                       {masterProfile?.fullName || "Stefan Lundberg"}
                     </h1>
                     <div className="text-sm font-medium text-neutral-700 mt-0.5">
-                      {masterProfile?.title || "Systemutvecklare & AI-utvecklare"}
+                      {masterProfile?.title || (activeLanguage === "en" ? "Software Developer & AI Engineer" : "Systemutvecklare & AI-utvecklare")}
                     </div>
 
                     <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-600">
@@ -930,31 +1012,37 @@ export function TailorStudio({
                 <div className="mt-8 flex justify-between items-start text-xs text-neutral-600">
                   <div>
                     <div className="font-bold text-neutral-900 text-sm">{job.company}</div>
-                    <div className="text-neutral-700">Att: Rekryteringsteamet / {job.title}</div>
+                    <div className="text-neutral-700">
+                      {LABELS[activeLanguage].recipientAtt} {job.title}
+                    </div>
                     <div className="text-neutral-500">{job.location}</div>
                   </div>
                   <div className="text-right text-xs text-neutral-500">
-                    Göteborg, {new Date().toLocaleDateString("sv-SE")}
+                    {activeLanguage === "en"
+                      ? `Gothenburg, ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                      : `Göteborg, ${new Date().toLocaleDateString("sv-SE")}`}
                   </div>
                 </div>
 
                 {/* Subject */}
                 <div className="mt-8">
                   <h2 className="text-base font-bold text-neutral-900">
-                    Ansökan: {job.title}
+                    {LABELS[activeLanguage].application} {job.title}
                   </h2>
                 </div>
 
                 {/* Letter Body */}
                 <div className="mt-4 text-xs leading-relaxed text-neutral-800 whitespace-pre-wrap">
                   {coverLetter ||
-                    "Inget personligt brev genererat ännu. Klicka på fliken 'Personligt Brev' eller 'Kör optimering' för att ta fram ett brev för denna roll."}
+                    (activeLanguage === "en"
+                      ? "No cover letter generated yet. Click 'Optimize CV & Letter' to generate an application tailored for this role."
+                      : "Inget personligt brev genererat ännu. Klicka på fliken 'Personligt Brev' eller 'Kör optimering' för att ta fram ett brev för denna roll.")}
                 </div>
               </div>
 
               {/* Sign-off */}
               <div className="mt-12 pt-4 text-xs text-neutral-800 border-t border-neutral-100">
-                <div>Med vänliga hälsningar,</div>
+                <div>{LABELS[activeLanguage].signOff}</div>
                 <div className="mt-3 text-sm font-bold text-neutral-900">
                   {masterProfile?.fullName || "Stefan Lundberg"}
                 </div>

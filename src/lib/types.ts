@@ -98,6 +98,7 @@ export interface MatchAnalysis {
  * AI-tailored resume, cover letter, and diff notes generated specifically for a job opportunity.
  */
 export interface TailoredCvData {
+  language?: "sv" | "en";
   tailoredSummary: string;
   tailoredExperiences: WorkExperience[];
   tailoredSkills: SkillCategory[];
@@ -108,6 +109,13 @@ export interface TailoredCvData {
     rationale: string;
   }[];
   matchAnalysis: MatchAnalysis;
+}
+
+/**
+ * Options for configuring AI resume and cover letter tailoring.
+ */
+export interface TailorOptions {
+  language?: "sv" | "en" | "auto";
 }
 
 /**
@@ -143,6 +151,7 @@ export interface JobItem {
   matchAnalysis?: MatchAnalysis | null;
   applications?: {
     id: string;
+    language?: "sv" | "en" | string;
     tailoredSummary: string;
     tailoredExperiences: WorkExperience[];
     tailoredSkills: SkillCategory[];

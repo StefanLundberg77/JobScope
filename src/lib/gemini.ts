@@ -213,7 +213,7 @@ Du är en senior teknisk rekryterare och ATS-expert.
 Gör en objektiv matchningsanalys mellan kandidatens Master-CV och en specifik jobbannons.
 
 VIKTIG PROFILKONTEXT & SÖKINSTÄLLNING:
-- Kandidaten har en bred teknisk grund (C#/.NET, Python, SQL, REST API-design, Docker/Linux, AI/RAG, databaser) kombinerat med över 10 års beprövad operativ ledar-, samordnings- och drifterfarenhet från restaurangbranschen.
+- Kandidaten har en bred teknisk grund (C#/.NET, Python, SQL, REST API-design, Docker/Linux, AI/RAG, databaser) kombinerat med flerårig beprövad operativ erfarenhet av drift, samordning och teamledarskap (driftansvarig/chef fram till 2024).
 - Kandidaten söker BRETT och är fullt öppen för hela spektrumet av roller inom IT och tech:
   * Mjukvaruutveckling (backend, frontend, fullstack, junior utvecklare, systemutvecklare)
   * Applikationsdrift, systemförvaltning, IT-tekniker och drifttekniker
@@ -224,7 +224,7 @@ VIKTIG PROFILKONTEXT & SÖKINSTÄLLNING:
   * IT-konsult och teknisk projektkoordinering
 - BEDÖMNINGSPRINCIP FÖR BREDA IT-ROLLER:
   * Sätt INTE ett lågt matchningsscore enbart för att rollens titel inte heter exakt "Systemutvecklare" eller "AI-utvecklare".
-  * Om rollen gäller t.ex. IT-support, applikationsdrift, testare eller teknisk samordnare: värdera kandidatens systemförståelse, felsökningsförmåga, programmeringslogik, SQL-vana, Linux/Docker-kunskap samt 10+ års stresstålighet och problemlösning som mycket starka och direkt överförbara meriter.
+  * Om rollen gäller t.ex. IT-support, applikationsdrift, testare eller teknisk samordnare: värdera kandidatens systemförståelse, felsökningsförmåga, programmeringslogik, SQL-vana, Linux/Docker-kunskap samt fleråriga stresstålighet, teamledarvana och problemlösningsförmåga som mycket starka och direkt överförbara meriter.
   * Beräkna en rättvis och realistisk matchningsprocent (0-100) baserat på kärnkrav och hur väl kandidatens samlade tekniska grund och inlärningsförmåga passar rollen.
 
 JOBBANNONS:
@@ -289,12 +289,48 @@ Svara EXAKT med detta JSON-schema:
 }
 
 /**
+ * Detects whether the primary language of a job posting is English or Swedish.
+ *
+ * @param text Combined title and description text of the job ad
+ * @returns 'en' if English is the dominant language, otherwise 'sv'
+ */
+export function detectJobLanguage(text: string): "sv" | "en" {
+  const sample = text.toLowerCase().slice(0, 3000);
+  const swedishWords = [
+    "och", "att", "som", "på", "för", "med", "är", "av", "till", "ett", "den",
+    "vi", "du", "har", "arbete", "erfarenhet", "utvecklare", "krav", "meriterande", "tjänsten", "ansökan"
+  ];
+  const englishWords = [
+    "and", "the", "to", "in", "for", "with", "is", "of", "you", "we", "are",
+    "have", "experience", "developer", "requirements", "skills", "responsibilities", "looking", "role", "position"
+  ];
+
+  let svScore = 0;
+  let enScore = 0;
+
+  for (const w of swedishWords) {
+    const matches = sample.match(new RegExp(`\\b${w}\\b`, "gi"));
+    if (matches) svScore += matches.length;
+  }
+
+  for (const w of englishWords) {
+    const matches = sample.match(new RegExp(`\\b${w}\\b`, "gi"));
+    if (matches) enScore += matches.length;
+  }
+
+  return enScore > svScore ? "en" : "sv";
+}
+
+/**
  * Tailors a candidate's resume and authors a targeted cover letter for a specific job posting.
+ * Supports bilingual generation (Swedish / English) with language auto-detection and distinct
+ * tonal calibration (grounded Swedish tech tone vs international impact-driven tech tone).
  * Enforces strict anti-hallucination guardrails: no fabrication of employment, dates,
  * or credentials, focusing strictly on STAR rephrasing and authentic portfolio references.
  *
  * @param job Target job posting details
  * @param profile Candidate MasterProfileData
+ * @param options Optional tailoring configuration (target language: 'sv' | 'en' | 'auto')
  * @returns Tailored CV data including reformulated experiences, cover letter, and diff notes
  */
 export async function tailorApplicationWithAI(
@@ -304,7 +340,10 @@ export async function tailorApplicationWithAI(
     description: string;
     requiredSkills?: string[];
   },
-  profile: MasterProfileData
+  profile: MasterProfileData,
+  options?: {
+    language?: "sv" | "en" | "auto";
+  }
 ): Promise<TailoredCvData> {
   const genAI = await getGeminiClient();
   const model = genAI.getGenerativeModel({
@@ -315,7 +354,109 @@ export async function tailorApplicationWithAI(
     },
   });
 
-  const prompt = `
+  // Determine active language
+  const detectedLang = detectJobLanguage(`${job.title} ${job.description}`);
+  const activeLanguage: "sv" | "en" =
+    options?.language === "en" || options?.language === "sv"
+      ? options.language
+      : detectedLang;
+
+  let prompt = "";
+
+  if (activeLanguage === "en") {
+    // English International Tech Tone Prompt
+    prompt = `
+You are a senior technical recruiter and career advisor specializing in the global IT and software engineering market.
+Task: Translate and tailor the candidate's Master-CV into professional English technical terminology, and author a concise, high-impact Cover Letter specifically for the job posting below.
+
+STRICT ETHICAL RULES (TRUTH BARRIER):
+1. NEVER fabricate employers, degrees, fake projects, certifications, or employment dates not present in the candidate's Master-CV.
+2. All tailoring must be strictly grounded in real achievements and demonstrated skills.
+
+INTERNATIONAL TECH TONE & ANTI-FLUFF STANDARD:
+International tech hiring leads and engineering managers value confidence, clarity, strong action verbs, and impact over corporate buzzwords. Follow these principles strictly:
+
+1. FORBIDDEN ENGLISH CLICHES (BLACKLIST - NEVER USE):
+   - ❌ "I am writing to express my enthusiastic interest / excited to apply for..."
+   - ❌ "I have long admired / followed your company with great interest..." (unless a specific factual reason exists)
+   - ❌ "Drawn by your unique company culture / vision / flexible benefits" (NEVER regurgitate company marketing copy)
+   - ❌ "I am confident that my unique combination of..." / "unique ability"
+   - ❌ "Synergistic self-starter / passionate go-getter / hit the ground running / wear many hats"
+   - ❌ "Experienced [tech] developer" or senior title inflation (candidate is junior/mid with deep practical project execution; use straightforward titles like "C#/.NET Developer" or "Software Developer").
+   - ❌ Attributing software/DevOps capabilities ("from code to deployment") to restaurant leadership (keep code/deployment to technical projects like Steam/Docker/APIs).
+   - ❌ "Even though I lack direct experience with [X]..." (NEVER apologize or sound defensive; proactively emphasize solid engineering fundamentals and rapid ramp-up).
+
+2. ACTION VERBS & IMPACT-DRIVEN CV POINTS (STAR):
+   - Fully translate all bullet points and summaries into natural, idiomatic technical English.
+   - Begin achievement bullets with strong action verbs: Architected, Engineered, Implemented, Streamlined, Spearheaded, Profiled, Benchmarked, Automated, Deployed.
+   - Emphasize engineering depth: multi-threading, concurrency locks, client-side prediction, snapshot smoothing, garbage collection optimization, RAG pipelines, Docker containerization, REST API design.
+
+3. COVER LETTER GUIDELINES (CONCISE & CONFIDENT):
+   - Length: Exactly 3-4 short, punchy paragraphs (approx. 200–250 words total).
+   - Opening: Go straight to the point in the first sentence (e.g. "I am applying for the [Role] at [Company]. With a background in performance-critical C# architecture, systems programming, and a track record of shipping production software to Steam...").
+   - Body Paragraph 1 (Technical core): Reference real projects (No Final Run, Oxide Arena, JobScope, Orbislinks, PNS, Thesis on Multimodal RAG) showcasing architecture, performance, and backend depth.
+   - Body Paragraph 2 (Databases & DevOps): Relational SQL databases, Docker environments, cloud fundamentals, and rapid adoption of new tech stacks.
+   - Body Paragraph 3 (Operational Leadership & Team Experience): Frame previous background as manager/operations lead (up to 2024) as several years of operational drift and team leadership (high stress resilience under real-time pressure, fast prioritization, clear unpretentious team communication, pragmatic crisis management). Avoid calling it "10+ years of operational leadership" to avoid confusion with IT/DevOps management.
+   - Closing: Professional, direct, and polite (1-2 sentences).
+
+JOB POSTING:
+Title: ${job.title}
+Company: ${job.company}
+Description:
+"""
+${job.description.slice(0, 4000)}
+"""
+
+CANDIDATE'S MASTER-CV (SWEDISH SOURCE):
+${JSON.stringify(profile, null, 2)}
+
+Respond EXACTLY with this JSON schema (all string values translated into English):
+{
+  "tailoredSummary": "Concise, high-impact professional summary in English tailored to the target role",
+  "tailoredExperiences": [
+    {
+      "id": "same id as master-cv",
+      "company": "same company name",
+      "role": "Translated/Optimized English Role Title (e.g. Lead Developer & Game Director)",
+      "location": "location",
+      "startDate": "start date",
+      "endDate": "end date or 'Present'",
+      "current": true,
+      "description": "Optional brief role context in English",
+      "achievements": [
+        "Action-verb bullet 1 (e.g. 'Architected core gameplay and procedural systems in C#...')",
+        "Action-verb bullet 2"
+      ],
+      "skills": ["Relevant technologies prioritized for the ad"]
+    }
+  ],
+  "tailoredSkills": [
+    {
+      "category": "Category Name in English (e.g. Programming Languages, Backend & Frameworks, Cloud & DevOps)",
+      "items": ["Skills prioritized with the ad's most desired first"]
+    }
+  ],
+  "coverLetter": "Full English cover letter formatted with greeting, paragraphs, and closing. Confident, direct, impact-driven, and completely free from AI fluff.",
+  "diffNotes": [
+    {
+      "section": "Summary / Experience X / Skills",
+      "change": "Brief description of the translation/tailoring change",
+      "rationale": "Why this change optimizes appeal for this specific employer"
+    }
+  ],
+  "matchAnalysis": {
+    "score": 85,
+    "summary": "Match overview summary in English",
+    "strongMatches": ["Match 1", "Match 2"],
+    "transferableSkills": ["Skill 1"],
+    "missingKeywords": ["Keyword 1"],
+    "suggestions": ["Suggestion 1"]
+  }
+}
+`;
+  } else {
+    // Swedish Grounded Tech Tone Prompt
+    prompt = `
 Du är en senior svensk tech-rekryterare och karriärrådgivare specialiserad på IT- och mjukvarubranschen.
 Uppgift: Skräddarsy kandidatens CV och författa ett jordnära, genuint och knivskarpt personligt brev specifikt för nedanstående jobbannons.
 
@@ -330,14 +471,16 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
    - ❌ "Med stor entusiasm ansöker jag härmed..."
    - ❌ "Jag har följt er med stort intresse / under en längre tid..." (om inte en specifik faktisk anledning finns)
    - ❌ "Lockas av er unika företagskultur / ambition att vara Sveriges bästa arbetsgivare / flexibla lönemodell" (upprepa ALDRIG företagets marknadsföringsfloskler som en papegoja)
-   - ❌ "Jag är övertygad om att min unika kombination av..."
+   - ❌ "Jag är övertygad om att min unika kombination av..." / "unik förmåga"
    - ❌ "Som spindeln i nätet / brinner för / hungrig på nya utmaningar / dynamisk lagspelare"
+   - ❌ "Erfaren C#/.NET-utvecklare" eller annan uppblåst senioritetstitel (använd istället sakliga och nivåanpassade titlar som "C#/.NET-utvecklare" eller "Systemutvecklare inom C#/.NET" och låt skarpa meriter som flertrådning och Steam-release bevisa djupet).
+   - ❌ Att tillskriva restaurangledarskap förmågan att "driva projekt från kod till drift" (kod till drift härrör uteslutande från de tekniska mjukvaruprojekten).
    - ❌ "Även om jag saknar erfarenhet av [X]..." (var ALDRIG defensiv eller ursäktande; fokusera istället proaktivt på en solid teknisk grund och snabb ramp-up).
 
 2. RIKTLINJER FÖR PERSONLIGT BREV:
-   - Inledning: Gå RAKT PÅ SAK i första meningen. Ange vilken roll det gäller och sammanfatta kärnan i vad kandidaten erbjuder (t.ex. stark C#-grund, systemarkitektur och 10+ års operativt ledarskap).
+   - Inledning: Gå RAKT PÅ SAK i första meningen. Ange vilken roll det gäller och sammanfatta kärnan i vad kandidaten erbjuder (t.ex. stark C#-grund, systemarkitektur och flerårig erfarenhet av drift och teamledarskap).
    - "Show, Don't Tell" (STAR): Referera till konkreta projekt ur portfolion/erfarenheten (t.ex. No Final Run, Oxide Arena, JobScope, Orbislinks RAG-agenter, PNS, examensarbetet). Förklara VAD som byggdes, vilka utmaningar som löstes (t.ex. prestandaoptimering, nätverkssynkronisering, flertrådning, trådsäkerhet, API-design) och hur det relaterar till annonsens krav.
-   - Tidigare ledarerfarenhet (Restaurangbranschen): Presentera den som en konkret operativ styrka – stresstålighet under hög press, tydlig och prestigelös teamkommunikation, samt vana att ta ansvar för drift och leverans.
+   - Tidigare ledarerfarenhet (fram till 2024): Presentera den som flerårig erfarenhet av operativ drift och teamledarskap i högintensiva miljöer – stresstålighet under hög press, tydlig och prestigelös teamkommunikation, snabba prioriteringar samt vana att ta ansvar för drift, kvalitet och leverans. Blås INTE upp det till "10+ års operativt ledarskap" och förväxla det inte med IT-drift.
    - Proaktiv teknikmatchning: Vid nya databaser/ramverk – lyft kandidatens gedigna SQL- och mjukvarugrund och snabba inlärningsförmåga utan att be om ursäkt.
    - Avslutning: Saklig, artig och professionell (1-2 meningar) utan svulstiga löften.
    - Omfång: Håll brevet koncist och lättläst (ca 3-4 korta, kärnfulla stycken).
@@ -401,8 +544,13 @@ Svara EXAKT med detta JSON-schema:
   }
 }
 `;
+  }
 
   const result = await model.generateContent(prompt);
   const text = result.response.text();
-  return JSON.parse(text);
+  const parsed = JSON.parse(text);
+  return {
+    language: activeLanguage,
+    ...parsed,
+  };
 }

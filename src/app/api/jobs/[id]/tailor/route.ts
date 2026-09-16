@@ -16,11 +16,17 @@ import { MasterProfileData } from "@/lib/types";
  * calculates ATS match score, and persists a new TailoredApplication record.
  */
 export async function POST(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await ctx.params;
+    let body: { language?: "sv" | "en" | "auto" } = {};
+    try {
+      body = await req.json();
+    } catch {
+      // Body is optional
+    }
 
     const job = await prisma.jobListing.findUnique({
       where: { id },
@@ -62,7 +68,7 @@ export async function POST(
       projects: JSON.parse(profileRecord.projects || "[]"),
     };
 
-    // Run AI tailoring
+    // Run AI tailoring with language option
     const tailored = await tailorApplicationWithAI(
       {
         title: job.title,
@@ -70,7 +76,10 @@ export async function POST(
         description: job.description,
         requiredSkills: JSON.parse(job.requiredSkills || "[]"),
       },
-      profile
+      profile,
+      {
+        language: body.language || "auto",
+      }
     );
 
     // Save or update TailoredApplication in database
