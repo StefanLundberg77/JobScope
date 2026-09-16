@@ -382,6 +382,8 @@ International tech hiring leads and engineering managers value confidence, clari
    - ❌ "Drawn by your unique company culture / vision / flexible benefits" (NEVER regurgitate company marketing copy)
    - ❌ "I am confident that my unique combination of..." / "unique ability"
    - ❌ "Synergistic self-starter / passionate go-getter / hit the ground running / wear many hats"
+   - ❌ "Agile problem solving / agile mindset / solution-oriented / dynamic team player" (empty corporate buzzwords)
+   - ❌ "Which provides a strong ability to..." / "combines X with Y to deliver unique..." (avoid inflated, indirect promotional bridge phrases; state concrete actions and delivery value directly)
    - ❌ "Experienced [tech] developer" or senior title inflation (candidate is junior/mid with deep practical project execution; use straightforward titles like "C#/.NET Developer" or "Software Developer").
    - ❌ Attributing software/DevOps capabilities ("from code to deployment") to restaurant leadership (keep code/deployment to technical projects like Steam/Docker/APIs).
    - ❌ "Even though I lack direct experience with [X]..." (NEVER apologize or sound defensive; proactively emphasize solid engineering fundamentals and rapid ramp-up).
@@ -391,7 +393,14 @@ International tech hiring leads and engineering managers value confidence, clari
    - Begin achievement bullets with strong action verbs: Architected, Engineered, Implemented, Streamlined, Spearheaded, Profiled, Benchmarked, Automated, Deployed.
    - Emphasize engineering depth: multi-threading, concurrency locks, client-side prediction, snapshot smoothing, garbage collection optimization, RAG pipelines, Docker containerization, REST API design.
 
-3. COVER LETTER GUIDELINES (CONCISE & CONFIDENT):
+3. CV PROFILE SUMMARY (tailoredSummary) GUIDELINES:
+   - Length: Exactly 2-3 high-impact, factual sentences.
+   - Core: Grounded in C#/.NET, object-oriented system architecture, and performance optimization.
+   - Proof points: Shipping production software (e.g. Steam release), multithreaded systems, robust backend logic.
+   - Operational leadership: Translate into concrete human actions (fast prioritization under pressure, unpretentious team communication, delivery ownership). NEVER use abstract buzzwords like 'agile problem solving' or 'solution-oriented mindset'.
+   - Tone: Direct and grounded. Avoid indirect promotional bridge phrases like 'which provides a strong ability to...'.
+
+4. COVER LETTER GUIDELINES (CONCISE & CONFIDENT):
    - Length: Exactly 3-4 short, punchy paragraphs (approx. 200–250 words total).
    - Opening: Go straight to the point in the first sentence (e.g. "I am applying for the [Role] at [Company]. With a background in performance-critical C# architecture, systems programming, and a track record of shipping production software to Steam...").
    - Body Paragraph 1 (Technical core): Reference real projects (No Final Run, Oxide Arena, JobScope, Orbislinks, PNS, Thesis on Multimodal RAG) showcasing architecture, performance, and backend depth.
@@ -473,6 +482,8 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
    - ❌ "Lockas av er unika företagskultur / ambition att vara Sveriges bästa arbetsgivare / flexibla lönemodell" (upprepa ALDRIG företagets marknadsföringsfloskler som en papegoja)
    - ❌ "Jag är övertygad om att min unika kombination av..." / "unik förmåga"
    - ❌ "Som spindeln i nätet / brinner för / hungrig på nya utmaningar / dynamisk lagspelare"
+   - ❌ "Agil problemlösning / agilt mindset / agilt tänk / lösningsorienterad / driven och engagerad / många bollar i luften" (tomma konsult- och HR-klyschor)
+   - ❌ "Vilket ger en stark förmåga till..." / "kombinerar X med Y vilket ger en unik förmåga..." (undvik distanserade, säljande konstruktioner; formulera konkreta handlingar, arbetssätt och leveransvärde direkt)
    - ❌ "Erfaren C#/.NET-utvecklare" eller annan uppblåst senioritetstitel (använd istället sakliga och nivåanpassade titlar som "C#/.NET-utvecklare" eller "Systemutvecklare inom C#/.NET" och låt skarpa meriter som flertrådning och Steam-release bevisa djupet).
    - ❌ Att tillskriva restaurangledarskap förmågan att "driva projekt från kod till drift" (kod till drift härrör uteslutande från de tekniska mjukvaruprojekten).
    - ❌ "Även om jag saknar erfarenhet av [X]..." (var ALDRIG defensiv eller ursäktande; fokusera istället proaktivt på en solid teknisk grund och snabb ramp-up).
@@ -485,9 +496,13 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
    - Avslutning: Saklig, artig och professionell (1-2 meningar) utan svulstiga löften.
    - Omfång: Håll brevet koncist och lättläst (ca 3-4 korta, kärnfulla stycken).
 
-3. RIKTLINJER FÖR CV-SAMMANFATTNING & PUNKTER:
-   - Formulera skräddarsydda punkter med hög teknisk densitet, tydliga mätbara resultat och exakt terminologi.
-   - Prioritera de kompetenser som annonsen efterfrågar högst upp.
+3. RIKTLINJER FÖR CV-PROFILTEXT (tailoredSummary) & ERFARENHETSPUNKTER:
+   - Profiltext (tailoredSummary): Exakt 2–3 kärnfulla, sakliga meningar. Hög teknisk densitet och absolut noll HR-floskler.
+     - Teknisk kärna: Gedigen grund inom C#/.NET, objektorienterad systemarkitektur och prestandaoptimering.
+     - Konkreta bevis: Erfarenhet av att driva mjukvaruprojekt från arkitektur till skarp produktionsrelease (t.ex. Steam) samt bygga robusta, multitrådade system.
+     - Inramning av operativt ledarskap: Översätt ALLTID tidigare drift- och ledarerfarenhet till konkreta, mänskliga beteenden (lugn i kritiska lägen, snabb prioritering under press, prestigelös teamkommunikation och starkt leveransansvar i teamet). Använd ALDRIG abstrakta klyschor som "stark förmåga till agil problemlösning" eller "lösningsorienterat arbetssätt".
+     - Tonalitet & meningsbyggnad: Skriv direkt och sakligt. Undvik säljande bryggor som "vilket ger en stark förmåga till...".
+   - Erfarenhetspunkter (STAR): Hög teknisk densitet, tydliga mätbara resultat och exakt terminologi. Prioritera kompetenser som annonsen efterfrågar högst upp.
 
 JOBBANNONS:
 Titel: ${job.title}
@@ -502,7 +517,7 @@ ${JSON.stringify(profile, null, 2)}
 
 Svara EXAKT med detta JSON-schema:
 {
-  "tailoredSummary": "Skräddarsydd profilpitch anpassad till rollen och företaget (saklig, hög teknisk densitet, inga floskler)",
+  "tailoredSummary": "Skräddarsydd profilpitch anpassad till rollen och företaget (2-3 meningar, saklig, hög teknisk densitet, noll HR-floskler)",
   "tailoredExperiences": [
     {
       "id": "samma id som i master-cv",
