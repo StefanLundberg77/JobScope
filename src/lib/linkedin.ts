@@ -1,8 +1,15 @@
-// Public LinkedIn Job Search and Scraper Client (Guest Mode - No Login Required)
+/**
+ * Public LinkedIn Job Search and Scraper Client (Guest Mode - No Login Required).
+ * Queries public guest job endpoints and extracts metadata using regex parsing
+ * to circumvent authentication requirements.
+ */
 
 import { UnifiedJobHit } from "./types";
 import { ParsedJobAd } from "./parser";
 
+/**
+ * Parameters for querying the public LinkedIn guest jobs search endpoint.
+ */
 export interface LinkedInSearchParams {
   query?: string;
   location?: "goteborg" | "commute" | "region_14" | "all" | string;
@@ -11,6 +18,9 @@ export interface LinkedInSearchParams {
   offset?: number;
 }
 
+/**
+ * Normalized LinkedIn search response envelope.
+ */
 export interface LinkedInSearchResponse {
   total: {
     value: number;
@@ -18,6 +28,12 @@ export interface LinkedInSearchResponse {
   hits: UnifiedJobHit[];
 }
 
+/**
+ * Decodes HTML character entities (named and decimal) into standard UTF-8 characters.
+ *
+ * @param html String containing HTML entity encodings
+ * @returns Decoded plain text string
+ */
 function decodeHtml(html: string): string {
   return html
     .replace(/&amp;/g, "&")
@@ -30,6 +46,12 @@ function decodeHtml(html: string): string {
     .trim();
 }
 
+/**
+ * Maps application internal location identifiers to LinkedIn location strings.
+ *
+ * @param location Internal location identifier
+ * @returns LinkedIn geographic query string
+ */
 function mapLocationToLinkedIn(location?: string): string {
   switch (location) {
     case "goteborg":
@@ -44,6 +66,12 @@ function mapLocationToLinkedIn(location?: string): string {
   }
 }
 
+/**
+ * Validates whether a provided URL belongs to the linkedin.com domain.
+ *
+ * @param url Candidate URL string
+ * @returns True if URL hostname contains linkedin.com
+ */
 export function isLinkedInUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -53,6 +81,12 @@ export function isLinkedInUrl(url: string): boolean {
   }
 }
 
+/**
+ * Searches public LinkedIn job listings via the guest endpoint without requiring authentication.
+ *
+ * @param params Search query parameters (keywords, location, remote, pagination)
+ * @returns Parsed unified job hits
+ */
 export async function searchLinkedInJobs(
   params: LinkedInSearchParams
 ): Promise<LinkedInSearchResponse> {
@@ -155,6 +189,13 @@ export async function searchLinkedInJobs(
   }
 }
 
+/**
+ * Fetches and parses the full public job posting details from a LinkedIn job page.
+ * Extracts title, company, location, formatted description, and workplace model.
+ *
+ * @param urlOrId Full LinkedIn job URL or prefixed LinkedIn identifier (e.g. 'linkedin-12345')
+ * @returns Normalized ParsedJobAd payload
+ */
 export async function fetchLinkedInJobDetails(urlOrId: string): Promise<ParsedJobAd> {
   let targetUrl = urlOrId;
   if (!targetUrl.startsWith("http")) {

@@ -1,5 +1,14 @@
+/**
+ * Job ad parsing and web page extraction utilities.
+ * Leverages Gemini to parse unstructured job descriptions from raw pasted text
+ * or scraped external web pages into structured schema objects.
+ */
+
 import { getGeminiClient } from "./gemini";
 
+/**
+ * Structured schema representing an extracted job advertisement.
+ */
 export interface ParsedJobAd {
   title: string;
   company: string;
@@ -12,6 +21,13 @@ export interface ParsedJobAd {
   preferredSkills: string[];
 }
 
+/**
+ * Extracts structured job ad attributes from unstructured raw text using Gemini.
+ *
+ * @param text Unstructured job posting body or scraped text
+ * @param sourceUrl Optional source URL to preserve
+ * @returns Structured ParsedJobAd object
+ */
 export async function parseJobAdText(text: string, sourceUrl?: string): Promise<ParsedJobAd> {
   const genAI = await getGeminiClient();
   const model = genAI.getGenerativeModel({
@@ -52,6 +68,12 @@ Svara EXAKT med detta JSON-schema:
   };
 }
 
+/**
+ * Fetches an external job posting URL, strips HTML tags/scripts, and parses the text using Gemini.
+ *
+ * @param url External job posting web address
+ * @returns Structured ParsedJobAd object
+ */
 export async function fetchAndParseJobUrl(url: string): Promise<ParsedJobAd> {
   const res = await fetch(url, {
     headers: {

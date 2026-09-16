@@ -1,5 +1,12 @@
-// Arbetsförmedlingen JobTech Dev Search API client
+/**
+ * Arbetsförmedlingen JobTech Dev Search API client.
+ * Provides integration for searching public Swedish job ads, filtering by municipality/region,
+ * and fetching individual job postings without requiring an API key.
+ */
 
+/**
+ * Parameters for querying the JobTech Search API.
+ */
 export interface JobTechSearchParams {
   query?: string;
   occupationField?: string;
@@ -9,6 +16,9 @@ export interface JobTechSearchParams {
   offset?: number;
 }
 
+/**
+ * Raw hit object returned by the JobTech Search API.
+ */
 export interface JobTechHit {
   id: string;
   headline: string;
@@ -48,6 +58,9 @@ export interface JobTechHit {
   };
 }
 
+/**
+ * Encapsulated search response envelope from JobTech API.
+ */
 export interface JobTechSearchResponse {
   total: {
     value: number;
@@ -55,8 +68,13 @@ export interface JobTechSearchResponse {
   hits: JobTechHit[];
 }
 
-export const OCCUPATION_FIELD_DATA_IT = "apaJ_2ja_LuF"; // Arbetsförmedlingen Data/IT yrkesområde
+/** Arbetsförmedlingen Data/IT occupation field taxonomy ID */
+export const OCCUPATION_FIELD_DATA_IT = "apaJ_2ja_LuF";
+
+/** Official municipality code for Gothenburg */
 const GOTEBORG_MUNICIPALITY = "1480";
+
+/** Official Swedish municipality codes within commuting distance of Gothenburg */
 const COMMUTE_MUNICIPALITIES = [
   "1480", // Göteborg
   "1481", // Mölndal
@@ -69,8 +87,17 @@ const COMMUTE_MUNICIPALITIES = [
   "1384", // Kungsbacka
   "1490", // Borås
 ];
+
+/** Official region code for Västra Götaland County */
 const REGION_VASTRA_GOTALAND = "14";
 
+/**
+ * Queries the official Arbetsförmedlingen JobTech Dev Search API with optional keyword,
+ * location, remote work, and occupation field filters.
+ *
+ * @param params Search query parameters
+ * @returns Search response containing total count and array of job hits
+ */
 export async function searchJobTech(
   params: JobTechSearchParams
 ): Promise<JobTechSearchResponse> {
@@ -119,6 +146,12 @@ export async function searchJobTech(
   return res.json();
 }
 
+/**
+ * Fetches the full detailed payload for a specific job ad by JobTech ID.
+ *
+ * @param id JobTech ad ID
+ * @returns Detailed JobTechHit object
+ */
 export async function fetchJobTechAd(id: string): Promise<JobTechHit> {
   const res = await fetch(`https://jobsearch.api.jobtechdev.se/ad/${id}`, {
     headers: {

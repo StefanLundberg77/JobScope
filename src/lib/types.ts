@@ -1,5 +1,12 @@
-// Domain types for JobScope
+/**
+ * Domain types and data contracts for the JobScope application.
+ * Defines shared interfaces across the database layer, API handlers,
+ * Gemini AI analysis/tailoring engine, and frontend components.
+ */
 
+/**
+ * Represents a single employment history entry in the candidate's CV.
+ */
 export interface WorkExperience {
   id: string;
   company: string;
@@ -13,6 +20,9 @@ export interface WorkExperience {
   skills: string[];
 }
 
+/**
+ * Represents a formal education, degree, or training program entry.
+ */
 export interface Education {
   id: string;
   school: string;
@@ -23,16 +33,25 @@ export interface Education {
   description?: string;
 }
 
+/**
+ * Categorized skills container (e.g. Programming Languages, Frameworks, Cloud & DevOps).
+ */
 export interface SkillCategory {
   category: string;
   items: string[];
 }
 
+/**
+ * Spoken and written language proficiency entry.
+ */
 export interface Language {
   language: string;
   proficiency: string;
 }
 
+/**
+ * Authentic portfolio, open-source, or thesis project entry.
+ */
 export interface Project {
   name: string;
   description: string;
@@ -40,6 +59,9 @@ export interface Project {
   techStack: string[];
 }
 
+/**
+ * The single source of truth for the candidate's background, CV, and portfolio.
+ */
 export interface MasterProfileData {
   id?: string;
   fullName: string;
@@ -60,8 +82,11 @@ export interface MasterProfileData {
   photoUrl?: string;
 }
 
+/**
+ * ATS semantic match analysis produced by Gemini comparing a job posting with MasterProfileData.
+ */
 export interface MatchAnalysis {
-  score: number; // 0-100
+  score: number; // Semantic alignment percentage (0-100)
   summary: string;
   strongMatches: string[];
   transferableSkills: string[];
@@ -69,6 +94,9 @@ export interface MatchAnalysis {
   suggestions: string[];
 }
 
+/**
+ * AI-tailored resume, cover letter, and diff notes generated specifically for a job opportunity.
+ */
 export interface TailoredCvData {
   tailoredSummary: string;
   tailoredExperiences: WorkExperience[];
@@ -82,6 +110,9 @@ export interface TailoredCvData {
   matchAnalysis: MatchAnalysis;
 }
 
+/**
+ * Application pipeline status stages for the Kanban tracker.
+ */
 export type ApplicationStatus =
   | "saved"
   | "tailored"
@@ -90,6 +121,9 @@ export type ApplicationStatus =
   | "offer"
   | "rejected";
 
+/**
+ * Persisted job listing entity combining raw metadata, requirements, and tailoring history.
+ */
 export interface JobItem {
   id: string;
   externalId?: string | null;
@@ -119,6 +153,9 @@ export interface JobItem {
   }[];
 }
 
+/**
+ * Normalized job posting hit returned by search providers (JobTech Dev API and public LinkedIn).
+ */
 export interface UnifiedJobHit {
   id: string;
   headline: string;

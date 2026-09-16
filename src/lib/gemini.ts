@@ -6,6 +6,12 @@ import {
   TailoredCvData,
 } from "./types";
 
+/**
+ * Retrieves the Gemini API key, prioritizing user-defined settings in the SQLite
+ * database before falling back to the GEMINI_API_KEY environment variable.
+ *
+ * @returns The configured Gemini API key, or null if not found.
+ */
 export async function getGeminiApiKey(): Promise<string | null> {
   // Check settings table first, fallback to process.env
   try {
@@ -20,6 +26,11 @@ export async function getGeminiApiKey(): Promise<string | null> {
   return process.env.GEMINI_API_KEY?.trim() || null;
 }
 
+/**
+ * Instantiates the GoogleGenerativeAI client using the active API key.
+ *
+ * @throws Error if no valid Gemini API key is configured.
+ */
 export async function getGeminiClient(): Promise<GoogleGenerativeAI> {
   const key = await getGeminiApiKey();
   if (!key) {
@@ -30,12 +41,21 @@ export async function getGeminiClient(): Promise<GoogleGenerativeAI> {
   return new GoogleGenerativeAI(key);
 }
 
+/**
+ * Input payload for profile parsing, supporting raw text or a base64-encoded PDF.
+ */
 export interface ParseProfileInput {
   rawText?: string;
   pdfBase64?: string;
 }
 
-// Extract structured profile data from raw pasted text OR uploaded PDF (e.g. LinkedIn PDF export)
+/**
+ * Extracts structured candidate profile data from raw text or uploaded PDF (e.g. LinkedIn PDF export).
+ * Enforces JSON response formatting and low temperature to prevent hallucination.
+ *
+ * @param input Object containing rawText or pdfBase64
+ * @returns Structured partial profile data ready for database persistence
+ */
 export async function parseProfileWithAI(
   input: ParseProfileInput
 ): Promise<Partial<MasterProfileData>> {
@@ -149,14 +169,26 @@ Svara EXAKT med detta JSON-schema:
   return JSON.parse(text);
 }
 
-// Backwards-compatible wrapper
+/**
+ * Backwards-compatible wrapper to extract structured profile data from raw text.
+ *
+ * @param rawText Unstructured resume or portfolio text
+ * @returns Structured partial profile data
+ */
 export async function parseRawProfileWithAI(
   rawText: string
 ): Promise<Partial<MasterProfileData>> {
   return parseProfileWithAI({ rawText });
 }
 
-// Analyze match between job listing and master CV
+/**
+ * Performs ATS semantic match scoring and gap analysis between a candidate's
+ * Master-CV and a target job ad description.
+ *
+ * @param job Target job ad attributes (title, company, description, required/preferred skills)
+ * @param profile Candidate MasterProfileData
+ * @returns Semantic match analysis containing 0-100 score, matches, transferable skills, and gaps
+ */
 export async function analyzeJobMatchWithAI(
   job: {
     title: string;
@@ -256,7 +288,15 @@ Svara EXAKT med detta JSON-schema:
   return JSON.parse(text);
 }
 
-// Tailor CV and write a Cover Letter for a specific job ad
+/**
+ * Tailors a candidate's resume and authors a targeted cover letter for a specific job posting.
+ * Enforces strict anti-hallucination guardrails: no fabrication of employment, dates,
+ * or credentials, focusing strictly on STAR rephrasing and authentic portfolio references.
+ *
+ * @param job Target job posting details
+ * @param profile Candidate MasterProfileData
+ * @returns Tailored CV data including reformulated experiences, cover letter, and diff notes
+ */
 export async function tailorApplicationWithAI(
   job: {
     title: string;
