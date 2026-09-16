@@ -26,6 +26,8 @@ export async function GET(req: Request) {
       | "all";
     const remote = searchParams.get("remote") === "true";
     const source = (searchParams.get("source") || "all") as "all" | "jobtech" | "linkedin";
+    const sort = searchParams.get("sort") || "relevance";
+    const jtSort = sort === "date" ? ("pubdate-desc" as const) : undefined;
     const limit = parseInt(searchParams.get("limit") || "25", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
 
@@ -33,7 +35,7 @@ export async function GET(req: Request) {
     let totalCount = 0;
 
     if (source === "jobtech") {
-      const data = await searchJobTech({ query, occupationField, location, remote, limit, offset });
+      const data = await searchJobTech({ query, occupationField, location, remote, limit, offset, sort: jtSort });
       hits = (data.hits || []).map((h) => ({
         ...h,
         source: "jobtech" as const,
@@ -46,8 +48,8 @@ export async function GET(req: Request) {
     } else {
       // Source is "all": query both in parallel
       const [jobTechResult, linkedInResult] = await Promise.allSettled([
-        searchJobTech({ query, occupationField, location, remote, limit, offset }),
-        searchLinkedInJobs({ query, location, remote, limit: Math.min(limit, 15), offset }),
+        searchJobTech({ query, occupationField, location, remote, limit, offset, sort: jtSort }),
+        searchLinkedInJobs({ query, location, remote, limit: Math.min(limit, 25), offset }),
       ]);
 
       const jtHits: UnifiedJobHit[] =
@@ -66,9 +68,18 @@ export async function GET(req: Request) {
       const jtTotal = jobTechResult.status === "fulfilled" ? jobTechResult.value.total?.value || 0 : 0;
       const liTotal = linkedInResult.status === "fulfilled" ? linkedInResult.value.total?.value || 0 : 0;
 
-      // Interleave or combine hits
+      // Combine hits
       hits = [...liHits, ...jtHits];
       totalCount = jtTotal + liTotal;
+    }
+
+    // Sort combined results by publication date descending when requested
+    if (sort === "date") {
+      hits.sort((a, b) => {
+        const timeA = a.publication_date ? new Date(a.publication_date).getTime() : 0;
+        const timeB = b.publication_date ? new Date(b.publication_date).getTime() : 0;
+        return timeB - timeA;
+      });
     }
 
     return NextResponse.json({

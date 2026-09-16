@@ -14,6 +14,7 @@ export interface JobTechSearchParams {
   remote?: boolean;
   limit?: number;
   offset?: number;
+  sort?: "relevance" | "pubdate-desc";
 }
 
 /**
@@ -126,6 +127,11 @@ export async function searchJobTech(
   // Remote filter
   if (params.remote) {
     url.searchParams.set("remote", "true");
+  }
+
+  // Sort order (e.g. relevance or pubdate-desc)
+  if (params.sort) {
+    url.searchParams.set("sort", params.sort);
   }
 
   url.searchParams.set("limit", String(params.limit ?? 25));

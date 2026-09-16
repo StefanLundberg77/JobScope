@@ -15,6 +15,7 @@ import {
   Globe,
   RefreshCw,
   Layers,
+  ArrowUpDown,
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
 
@@ -54,6 +55,7 @@ export function JobSearchView({
   >("goteborg");
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [source, setSource] = useState<"all" | "linkedin" | "jobtech">("all");
+  const [sort, setSort] = useState<"relevance" | "date">("relevance");
   const [hits, setHits] = useState<UnifiedJobHit[]>([]);
   const [totalHits, setTotalHits] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -68,19 +70,22 @@ export function JobSearchView({
   const handleSearch = async (
     overrideQuery?: string,
     overrideSource?: "all" | "linkedin" | "jobtech",
-    overrideBroadIt?: boolean
+    overrideBroadIt?: boolean,
+    overrideSort?: "relevance" | "date"
   ) => {
     setLoading(true);
     try {
       const q = overrideQuery !== undefined ? overrideQuery : query;
       const s = overrideSource !== undefined ? overrideSource : source;
       const b = overrideBroadIt !== undefined ? overrideBroadIt : broadIt;
+      const so = overrideSort !== undefined ? overrideSort : sort;
       const params = new URLSearchParams({
         q,
         location,
         remote: remoteOnly ? "true" : "false",
         source: s,
         broadIt: b ? "true" : "false",
+        sort: so,
         limit: "25",
       });
 
@@ -111,7 +116,7 @@ export function JobSearchView({
         setSavedJobIds(map);
       })
       .catch(() => {});
-  }, [location, remoteOnly, source, broadIt]);
+  }, [location, remoteOnly, source, broadIt, sort]);
 
   // Save job and optionally navigate to tailor studio
   const handleSaveJob = async (hit: UnifiedJobHit, openStudio = false) => {
@@ -392,17 +397,56 @@ export function JobSearchView({
       </div>
 
       {/* Results Header */}
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-          Hittade annonser ({totalHits})
-        </h2>
-        <span className="text-xs text-neutral-400">
-          {source === "all"
-            ? "Källa: LinkedIn (Offentlig) + Arbetsförmedlingen"
-            : source === "linkedin"
-            ? "Källa: LinkedIn (Offentliga annonser)"
-            : "Källa: Arbetsförmedlingen JobTech API"}
-        </span>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+            Hittade annonser ({totalHits})
+          </h2>
+          <span className="text-xs text-neutral-400">
+            {source === "all"
+              ? "Källa: LinkedIn (Offentlig) + Arbetsförmedlingen"
+              : source === "linkedin"
+              ? "Källa: LinkedIn (Offentliga annonser)"
+              : "Källa: Arbetsförmedlingen JobTech API"}
+          </span>
+        </div>
+
+        {/* Sort selector */}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <span className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1">
+            <ArrowUpDown className="h-3.5 w-3.5" /> Sortera:
+          </span>
+          <div className="inline-flex rounded-lg bg-neutral-100 p-0.5 dark:bg-neutral-800">
+            <button
+              type="button"
+              onClick={() => {
+                setSort("relevance");
+                handleSearch(undefined, undefined, undefined, "relevance");
+              }}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                sort === "relevance"
+                  ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-700 dark:text-white"
+                  : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-white"
+              }`}
+            >
+              Relevans
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSort("date");
+                handleSearch(undefined, undefined, undefined, "date");
+              }}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                sort === "date"
+                  ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-700 dark:text-white"
+                  : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-white"
+              }`}
+            >
+              Nyast först
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Results List */}

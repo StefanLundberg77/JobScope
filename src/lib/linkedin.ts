@@ -93,19 +93,26 @@ export async function searchLinkedInJobs(
   const query = params.query?.trim() || "IT OR Utvecklare OR Developer";
   const location = mapLocationToLinkedIn(params.location);
   const start = params.offset ?? 0;
+  const targetLimit = params.limit ?? 25;
 
-  const url = new URL(
-    "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-  );
-  url.searchParams.set("keywords", query);
-  url.searchParams.set("location", location);
-  url.searchParams.set("start", String(start));
+  // LinkedIn returns up to 10 cards per guest API chunk.
+  // When targetLimit > 10, calculate required page offsets (capped at 3 pages / 30 hits for performance).
+  const pageSize = 10;
+  const numPages = Math.min(Math.ceil(targetLimit / pageSize), 3);
+  const pageOffsets = Array.from({ length: numPages }, (_, i) => start + i * pageSize);
 
-  if (params.remote) {
-    url.searchParams.set("f_WT", "2"); // 2 = Remote on LinkedIn
-  }
+  const fetchPage = async (pageStart: number): Promise<UnifiedJobHit[]> => {
+    const url = new URL(
+      "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
+    );
+    url.searchParams.set("keywords", query);
+    url.searchParams.set("location", location);
+    url.searchParams.set("start", String(pageStart));
 
-  try {
+    if (params.remote) {
+      url.searchParams.set("f_WT", "2"); // 2 = Remote on LinkedIn
+    }
+
     const res = await fetch(url.toString(), {
       headers: {
         "User-Agent":
@@ -117,16 +124,14 @@ export async function searchLinkedInJobs(
 
     if (!res.ok) {
       console.warn(`LinkedIn search returned status ${res.status}: ${res.statusText}`);
-      return { total: { value: 0 }, hits: [] };
+      return [];
     }
 
     const html = await res.text();
-
-    // Match individual job card blocks
     const cardRegex = /<li[\s\S]*?<\/li>/gi;
     const cards = html.match(cardRegex) || [];
 
-    const hits: UnifiedJobHit[] = [];
+    const pageHits: UnifiedJobHit[] = [];
 
     for (const card of cards) {
       // Extract title
@@ -155,7 +160,7 @@ export async function searchLinkedInJobs(
       const timeMatch = card.match(/<time[^>]*datetime="([^"]+)"[^>]*>([\s\S]*?)<\/time>/i);
       const pubDate = timeMatch ? (timeMatch[1] || timeMatch[2]?.trim()) : new Date().toISOString().split("T")[0];
 
-      hits.push({
+      pageHits.push({
         id: `linkedin-${jobId}`,
         headline: title,
         employer: {
@@ -171,17 +176,34 @@ export async function searchLinkedInJobs(
         webpage_url: rawLink,
         source: "linkedin",
       });
+    }
 
-      if (params.limit && hits.length >= params.limit) {
-        break;
+    return pageHits;
+  };
+
+  try {
+    const results = await Promise.allSettled(pageOffsets.map(fetchPage));
+    const seenIds = new Set<string>();
+    const hits: UnifiedJobHit[] = [];
+
+    for (const res of results) {
+      if (res.status === "fulfilled") {
+        for (const hit of res.value) {
+          if (!seenIds.has(hit.id)) {
+            seenIds.add(hit.id);
+            hits.push(hit);
+          }
+        }
       }
     }
 
+    const trimmedHits = hits.slice(0, targetLimit);
+
     return {
       total: {
-        value: hits.length,
+        value: trimmedHits.length,
       },
-      hits,
+      hits: trimmedHits,
     };
   } catch (error) {
     console.error("LinkedIn search fetch failed:", error);
