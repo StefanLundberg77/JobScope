@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * JobScope - Daglig Automatisk Jobbskanner
- * Körs manuellt eller schemalagt via Antigravity / cron.
+ * JobScope - Daily Automated Job Scanner CLI
+ * Can be executed manually or scheduled via cron / task runners.
+ * Triggers the /api/jobs/scan endpoint to fetch, deduplicate, and score job ads.
  */
 
+/**
+ * Executes the remote or local scan routine against the running JobScope server.
+ */
 async function runScan() {
   console.log("==========================================");
   console.log("🔍 JobScope: Startar daglig jobbsökning");

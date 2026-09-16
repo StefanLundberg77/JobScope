@@ -1,8 +1,18 @@
+/**
+ * API route handlers for /api/jobs/search.
+ * Unified search proxy querying both JobTech Dev Search API and public LinkedIn.
+ */
+
 import { NextResponse } from "next/server";
 import { searchJobTech, OCCUPATION_FIELD_DATA_IT } from "@/lib/jobtech";
 import { searchLinkedInJobs } from "@/lib/linkedin";
 import { UnifiedJobHit } from "@/lib/types";
 
+/**
+ * GET /api/jobs/search
+ * Executes aggregated search across JobTech and LinkedIn based on query keywords,
+ * location filters, remote toggle, and pagination parameters.
+ */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);

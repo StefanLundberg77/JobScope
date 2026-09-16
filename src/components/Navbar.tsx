@@ -10,14 +10,24 @@ import {
   Sparkles,
 } from "lucide-react";
 
+/**
+ * Top-level application view tab identifiers.
+ */
 export type TabType = "search" | "import" | "tracker" | "profile" | "settings";
 
+/**
+ * Props for the Navbar component.
+ */
 interface NavbarProps {
   currentTab: TabType;
   onSelectTab: (tab: TabType) => void;
   savedCount: number;
 }
 
+/**
+ * Top navigation bar featuring brand identity, responsive view switching tabs,
+ * and live badge count of saved applications.
+ */
 export function Navbar({ currentTab, onSelectTab, savedCount }: NavbarProps) {
   const navItems = [
     {

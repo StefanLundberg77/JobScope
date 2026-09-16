@@ -10,11 +10,19 @@ import { SettingsView } from "@/components/SettingsView";
 import { TailorStudio } from "@/components/TailorStudio";
 import { JobItem } from "@/lib/types";
 
+/**
+ * Main dashboard coordinator for the JobScope web application.
+ * Manages active navigation tabs ('search', 'import', 'tracker', 'profile', 'settings'),
+ * drill-down state for the TailorStudio, and global saved jobs count synchronization.
+ */
 export default function Home() {
   const [currentTab, setCurrentTab] = useState<TabType>("search");
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [savedCount, setSavedCount] = useState<number>(0);
 
+  /**
+   * Refreshes the total count of saved jobs from the backend to keep badge counters current.
+   */
   const fetchSavedCount = async () => {
     try {
       const res = await fetch("/api/jobs");

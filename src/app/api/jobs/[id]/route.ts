@@ -1,6 +1,15 @@
+/**
+ * API route handlers for /api/jobs/[id].
+ * Supports retrieving details, updating Kanban pipeline status or notes, and deleting job entries.
+ */
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+/**
+ * GET /api/jobs/[id]
+ * Retrieves a single job listing by ID, including its associated tailored applications.
+ */
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -46,6 +55,10 @@ export async function GET(
   }
 }
 
+/**
+ * PATCH /api/jobs/[id]
+ * Updates a job's Kanban lifecycle status (e.g. 'applied', 'interview') or custom notes.
+ */
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -84,6 +97,10 @@ export async function PATCH(
   }
 }
 
+/**
+ * DELETE /api/jobs/[id]
+ * Deletes a job listing and cascades deletion to linked tailored applications.
+ */
 export async function DELETE(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -103,3 +120,4 @@ export async function DELETE(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

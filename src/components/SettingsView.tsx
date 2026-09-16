@@ -15,6 +15,11 @@ import {
   Sparkles,
 } from "lucide-react";
 
+/**
+ * Settings configuration view.
+ * Allows managing Gemini API credentials, target job role, geographic search preferences,
+ * minimum ATS match scoring threshold, and automated background scan parameters.
+ */
 export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [hasEnvKey, setHasEnvKey] = useState(false);

@@ -1,8 +1,20 @@
+/**
+ * API route handlers for /api/jobs/[id]/tailor.
+ * Orchestrates AI-driven resume tailoring, STAR-method bullet refinement, cover letter creation,
+ * and human-in-the-loop manual overrides.
+ */
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { tailorApplicationWithAI } from "@/lib/gemini";
 import { MasterProfileData } from "@/lib/types";
 
+/**
+ * POST /api/jobs/[id]/tailor
+ * Initiates AI tailoring pipeline for the specified job posting.
+ * Loads the candidate's Master-CV, invokes Gemini to align skills/achievements,
+ * calculates ATS match score, and persists a new TailoredApplication record.
+ */
 export async function POST(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -95,7 +107,11 @@ export async function POST(
   }
 }
 
-// User saves manual edits to the tailored CV / cover letter (Human-in-the-loop)
+/**
+ * PUT /api/jobs/[id]/tailor
+ * Saves manual user edits to tailored resume, cover letter, or custom application notes.
+ * Enforces human-in-the-loop control prior to printing or sending.
+ */
 export async function PUT(
   req: Request,
   ctx: { params: Promise<{ id: string }> }

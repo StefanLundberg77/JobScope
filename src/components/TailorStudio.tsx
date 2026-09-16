@@ -31,6 +31,9 @@ import {
   ApplicationStatus,
 } from "@/lib/types";
 
+/**
+ * Available profile photos for CV layout customization.
+ */
 const AVAILABLE_PHOTOS = [
   { id: "rum_gron_vaxt", name: "Grön växt (LinkedIn)", path: "/profile/cv_rum_gron_vaxt.jpg" },
   { id: "office_lugnt_rum", name: "Lugnt rum & bokhylla", path: "/profile/cv_office_lugnt_rum.jpg" },
@@ -41,12 +44,20 @@ const AVAILABLE_PHOTOS = [
   { id: "office_vanlig_vagg_bw", name: "Enkel vägg (Svartvit)", path: "/profile/cv_office_vanlig_vagg_bw.jpg" },
 ];
 
+/**
+ * Props for the TailorStudio component.
+ */
 interface TailorStudioProps {
   jobId: string;
   onBack: () => void;
   onJobUpdated?: () => void;
 }
 
+/**
+ * TailorStudio provides an interactive workspace for reviewing AI-driven resume tailoring,
+ * examining side-by-side diff rationales, refining cover letters, and exporting ATS-optimized
+ * A4 resumes and cover letters for print/PDF.
+ */
 export function TailorStudio({
   jobId,
   onBack,

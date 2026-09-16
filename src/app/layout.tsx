@@ -12,11 +12,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Root application metadata for SEO and browser tab titles.
+ */
 export const metadata: Metadata = {
   title: "JobScope | Intelligent Job Tech & Kravprofilsanalys",
   description: "Intelligent bevakning av IT-arbetsmarknaden, kravprofilsanalys och matchning.",
 };
 
+/**
+ * Root layout component wrapping all pages and views.
+ * Configures global typography fonts, anti-aliased styling, and hydration warning suppression.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

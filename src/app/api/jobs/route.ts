@@ -1,3 +1,8 @@
+/**
+ * API route handlers for /api/jobs.
+ * Handles listing saved jobs and ingesting new job postings from multiple sources.
+ */
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fetchJobTechAd } from "@/lib/jobtech";
@@ -6,6 +11,11 @@ import { isLinkedInUrl, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
 import { MasterProfileData } from "@/lib/types";
 
+/**
+ * GET /api/jobs
+ * Retrieves all saved job listings, optionally filtered by application status.
+ * Deserializes SQLite JSON strings into strongly typed arrays and objects.
+ */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -44,6 +54,11 @@ export async function GET(req: Request) {
   }
 }
 
+/**
+ * POST /api/jobs
+ * Ingests a new job listing from JobTech ID, LinkedIn URL/ID, external web URL,
+ * raw pasted text, or manual form entry. Triggers automatic AI match scoring if configured.
+ */
 export async function POST(req: Request) {
   try {
     const body = await req.json();

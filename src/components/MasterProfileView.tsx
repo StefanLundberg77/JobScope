@@ -33,6 +33,9 @@ import {
   Project,
 } from "@/lib/types";
 
+/**
+ * Master profile photo options available for selection.
+ */
 const AVAILABLE_PHOTOS = [
   {
     id: "rum_gron_vaxt",
@@ -78,6 +81,11 @@ const AVAILABLE_PHOTOS = [
   },
 ];
 
+/**
+ * Master-CV Editor view. Serves as the single source of truth for the candidate's
+ * professional profile, work history, education, categorized competencies, portfolio projects,
+ * and AI-driven PDF/text resume import.
+ */
 export function MasterProfileView() {
   const [profile, setProfile] = useState<MasterProfileData>({
     fullName: "",

@@ -1,6 +1,16 @@
+/**
+ * API route handlers for /api/settings.
+ * Manages user preferences, Gemini API key configuration, and search parameters in SQLite.
+ */
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+/**
+ * GET /api/settings
+ * Retrieves user settings from SQLite, or initializes default settings with fallback
+ * to environment variables. Indicates whether an API key is actively configured.
+ */
 export async function GET() {
   try {
     let settings = await prisma.userSettings.findFirst();
@@ -35,6 +45,10 @@ export async function GET() {
   }
 }
 
+/**
+ * PUT /api/settings
+ * Updates user settings, including search keywords, target role, min ATS score, and Gemini API key.
+ */
 export async function PUT(req: Request) {
   try {
     const body = await req.json();

@@ -15,11 +15,17 @@ import {
 } from "lucide-react";
 import { JobItem, ApplicationStatus } from "@/lib/types";
 
+/**
+ * Props for the TrackerView component.
+ */
 interface TrackerViewProps {
   onOpenTailorStudio: (jobId: string) => void;
   onRefreshSavedCount: () => void;
 }
 
+/**
+ * Kanban pipeline column definitions representing the application lifecycle stages.
+ */
 const COLUMNS: { id: ApplicationStatus; title: string; color: string }[] = [
   { id: "saved", title: "Sparade", color: "border-neutral-200 bg-neutral-50" },
   { id: "tailored", title: "Optimerade", color: "border-blue-200 bg-blue-50/40" },
@@ -29,6 +35,10 @@ const COLUMNS: { id: ApplicationStatus; title: string; color: string }[] = [
   { id: "rejected", title: "Avslag", color: "border-rose-200 bg-rose-50/40" },
 ];
 
+/**
+ * Visual Kanban application tracking board. Allows moving jobs between stages,
+ * reviewing current ATS match scores, launching tailoring, and deleting listings.
+ */
 export function TrackerView({
   onOpenTailorStudio,
   onRefreshSavedCount,

@@ -1,3 +1,9 @@
+/**
+ * API route handlers for /api/jobs/scan.
+ * Executes automated background batch scanning across JobTech Dev API and public LinkedIn,
+ * deduplicating against the database and triggering Gemini ATS match evaluation.
+ */
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { searchJobTech, fetchJobTechAd, OCCUPATION_FIELD_DATA_IT } from "@/lib/jobtech";
@@ -6,6 +12,11 @@ import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
 import { parseJobAdText } from "@/lib/parser";
 import { MasterProfileData } from "@/lib/types";
 
+/**
+ * POST /api/jobs/scan
+ * Runs a multi-source job sweep matching the candidate's preferences, deduplicates against
+ * existing database records, evaluates ATS match score, and saves candidates meeting minScore.
+ */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));

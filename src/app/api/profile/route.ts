@@ -1,7 +1,17 @@
+/**
+ * API route handlers for /api/profile.
+ * Manages fetching and updating the candidate's central Master-CV profile in SQLite.
+ */
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { MasterProfileData } from "@/lib/types";
 
+/**
+ * GET /api/profile
+ * Retrieves the candidate's MasterProfile from SQLite, or creates an initial default record if none exists.
+ * Deserializes JSON columns for experiences, education, skills, languages, and projects.
+ */
 export async function GET() {
   try {
     let profile = await prisma.masterProfile.findFirst();
@@ -59,6 +69,10 @@ export async function GET() {
   }
 }
 
+/**
+ * PUT /api/profile
+ * Upserts the candidate's MasterProfile record, serializing nested arrays into SQLite JSON strings.
+ */
 export async function PUT(req: Request) {
   try {
     const data: Partial<MasterProfileData> = await req.json();

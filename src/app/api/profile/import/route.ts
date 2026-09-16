@@ -1,6 +1,17 @@
+/**
+ * API route handlers for /api/profile/import.
+ * Ingests external candidate CV data from uploaded PDFs (e.g. LinkedIn PDF export)
+ * or unstructured raw text, using Gemini to extract structured profile entities.
+ */
+
 import { NextResponse } from "next/server";
 import { parseProfileWithAI } from "@/lib/gemini";
 
+/**
+ * POST /api/profile/import
+ * Accepts multipart/form-data with a PDF file or rawText, or application/json payloads,
+ * extracts text content, and delegates structuring to Gemini AI.
+ */
 export async function POST(req: Request) {
   try {
     const contentType = req.headers.get("content-type") || "";

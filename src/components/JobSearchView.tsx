@@ -18,21 +18,31 @@ import {
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
 
+/**
+ * Props for the JobSearchView component.
+ */
 interface JobSearchViewProps {
   onOpenTailorStudio: (jobId: string) => void;
   onRefreshSavedCount: () => void;
 }
 
+/**
+ * Predefined quick-filter presets targeting key Swedish IT sectors.
+ */
 const QUICK_IT_FILTERS = [
-  { label: "🌐 Alla IT-jobb", query: "", broad: true },
-  { label: "💻 C# / .NET", query: "C# .NET", broad: true },
-  { label: "🐍 Python & AI", query: "Python AI", broad: true },
-  { label: "⚡ Fullstack", query: "Fullstack", broad: true },
-  { label: "🛠️ Support & Drift", query: "Support Drift", broad: true },
-  { label: "☁️ DevOps & Cloud", query: "DevOps Cloud", broad: true },
-  { label: "🧪 Test & QA", query: "Test QA", broad: true },
+  { label: "Alla IT-jobb", query: "", broad: true },
+  { label: "C# / .NET", query: "C# .NET", broad: true },
+  { label: "Python & AI", query: "Python AI", broad: true },
+  { label: "Fullstack", query: "Fullstack", broad: true },
+  { label: "Support & Drift", query: "Support Drift", broad: true },
+  { label: "DevOps & Cloud", query: "DevOps Cloud", broad: true },
+  { label: "Test & QA", query: "Test QA", broad: true },
 ];
 
+/**
+ * Interactive search interface for querying live Swedish IT job postings
+ * across Arbetsförmedlingen JobTech Dev API and public LinkedIn guest search.
+ */
 export function JobSearchView({
   onOpenTailorStudio,
   onRefreshSavedCount,

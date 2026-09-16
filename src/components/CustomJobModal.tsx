@@ -4,10 +4,17 @@ import React, { useState } from "react";
 import { PlusCircle, Link, FileText, Sparkles, Loader2, AlertCircle } from "lucide-react";
 import { JobItem } from "@/lib/types";
 
+/**
+ * Props for the CustomJobModal component.
+ */
 interface CustomJobModalProps {
   onJobSaved: (job: JobItem) => void;
 }
 
+/**
+ * Ingestion modal enabling users to import arbitrary job postings from
+ * external links (LinkedIn, Indeed, career sites) or raw pasted text.
+ */
 export function CustomJobModal({ onJobSaved }: CustomJobModalProps) {
   const [activeMode, setActiveMode] = useState<"url" | "text">("url");
   const [url, setUrl] = useState("");

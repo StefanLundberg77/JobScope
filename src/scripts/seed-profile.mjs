@@ -1,3 +1,8 @@
+/**
+ * Database seeding script for JobScope.
+ * Initializes default MasterProfile records and credentials using the LibSQL client directly.
+ */
+
 import { createClient } from "@libsql/client";
 import fs from "node:fs";
 
