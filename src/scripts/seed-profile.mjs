@@ -38,7 +38,7 @@ const profileData = {
       achievements: [
         "Systemarkitektur & Spelmekanik: Utvecklade centrala spelsystem, procedurgenerering, vapenbalansering och fiende-AI i Unity och C#.",
         "Prestandaoptimering: Profilerade minnesallokering och render-loops för att säkerställa stabil framerate vid intensiva partikelflöden och stora objektmängder.",
-        "Agil Projektledning: Samordnade utvecklingsteamet genom Scrum/Kanban samt ansvarade för release- och versionshantering på Steamworks."
+        "Release & Versionering: Ansvarade för byggen, versionshantering och teknisk driftsättning via Steamworks inför och efter spelets release på Steam."
       ],
       skills: [
         "C#",
@@ -47,7 +47,7 @@ const profileData = {
         "Procedurgenerering",
         "Prestandaoptimering",
         "Steamworks",
-        "Agilt / Scrum"
+        "Git & Versionshantering"
       ]
     },
     {
