@@ -356,6 +356,10 @@ INTERNATIONAL TECH TONE & ANTI-FLUFF STANDARD:
 International tech hiring leads and engineering managers value confidence, clarity, strong action verbs, and impact over corporate buzzwords. Follow these principles strictly:
 
 1. FORBIDDEN ENGLISH CLICHES (BLACKLIST - NEVER USE):
+   - ❌ "with a strong foundation in..." (empty CV filler; state what you build and focus on directly)
+   - ❌ "a track record of shipping production software..." (inflated corporate cliché; name the concrete product/release directly)
+   - ❌ "Combines deep technical understanding of X with Y" / "deep technical understanding" (avoid self-aggrandizing labels and synthetic bridge sentences)
+   - ❌ "pragmatic crisis management" / "crisis management" (consultant buzzword; use grounded phrasing like "operational team leadership and fast-paced prioritization")
    - ❌ "I am writing to express my enthusiastic interest / excited to apply for..."
    - ❌ "I have long admired / followed your company with great interest..." (unless a specific factual reason exists)
    - ❌ "Drawn by your unique company culture / vision / flexible benefits" (NEVER regurgitate company marketing copy)
@@ -372,20 +376,52 @@ International tech hiring leads and engineering managers value confidence, clari
    - Begin achievement bullets with strong action verbs: Architected, Engineered, Implemented, Streamlined, Spearheaded, Profiled, Benchmarked, Automated, Deployed.
    - Emphasize engineering depth: multi-threading, concurrency locks, client-side prediction, snapshot smoothing, garbage collection optimization, RAG pipelines, Docker containerization, REST API design.
 
-3. CV PROFILE SUMMARY (tailoredSummary) GUIDELINES:
-   - Length: Exactly 2-3 high-impact, factual sentences.
-   - Core: Grounded in C#/.NET, object-oriented system architecture, and performance optimization.
-   - Proof points: Shipping production software (e.g. Steam release), multithreaded systems, robust backend logic.
-   - Operational leadership: Translate into concrete human actions (fast prioritization under pressure, unpretentious team communication, delivery ownership). NEVER use abstract buzzwords like 'agile problem solving' or 'solution-oriented mindset'.
-   - Tone: Direct and grounded. Avoid indirect promotional bridge phrases like 'which provides a strong ability to...'.
+3. CV PROFILE SUMMARY (tailoredSummary) GUIDELINES & ROLE-ADAPTIVE BENCHMARK:
+   - Length: Exactly 2 high-impact, factual sentences. High technical density, verb-first style, and zero HR fluff.
+   - DYNAMIC ROLE ANCHORING (Adapt the primary focus and identity to what the target posting seeks):
+     * If applying for GenAI / AI / Python / Data roles: Lead with applied GenAI/AI development (RAG architectures, agentic workflows, Python, multimodal retrieval) and solid systems engineering. Reference real implementations (Orbislinks, Thesis on Multimodal RAG on Azure, JobScope), reinforced by shipping commercial software to Steam (No Final Run) and operational team leadership.
+       Example benchmark: "GenAI and software developer focused on applied AI pipelines (RAG, agentic workflows) and robust system architecture in Python and C#/.NET. Built multimodal retrieval benchmarks on Azure, shipped commercial software to Steam (No Final Run), and brings several years of operational team leadership."
+     * If applying for C# / .NET / Backend roles: Lead with C#/.NET backend architecture, multithreading, and performance optimization.
+       Example benchmark: "C#/.NET developer focused on backend architecture, performance optimization, and multithreaded systems. Shipped commercial software to Steam (No Final Run), with an earlier background in operational team leadership and fast-paced prioritization."
+     * If applying for Fullstack / Broad IT roles: Balance modern fullstack delivery (Python/C#, React/Next.js, SQL/Docker) and operational reliability.
+   - Hard Rules:
+     * NEVER write "with a strong foundation in..."
+     * NEVER write "Combines [X] with [Y]..."
+     * NEVER write "deep technical understanding" or "track record"
+     * Lead with active engineering focus and concrete shipped systems/pipelines.
 
 4. COVER LETTER GUIDELINES (CONCISE & CONFIDENT):
    - Length: Exactly 3-4 short, punchy paragraphs (approx. 200–250 words total).
-   - Opening: Go straight to the point in the first sentence (e.g. "I am applying for the [Role] at [Company]. With a background in performance-critical C# architecture, systems programming, and a track record of shipping production software to Steam...").
+   - Opening: Go straight to the point in the first sentence tailored directly to the core nature of the role (e.g. For GenAI: "I am applying for the [Role] at [Company]. My focus is building production-grade GenAI systems—from RAG pipelines and autonomous agents to functional interfaces—backed by solid systems engineering in Python and C#..."; For C#/.NET: "I am applying for the [Role] at [Company]. My focus is performance-critical C# backend architecture and multithreaded systems, having shipped commercial software to Steam (No Final Run)...").
    - Body Paragraph 1 (Technical core): Reference real projects (No Final Run, Oxide Arena, JobScope, Orbislinks, PNS, Thesis on Multimodal RAG) showcasing architecture, performance, and backend depth.
    - Body Paragraph 2 (Databases & DevOps): Relational SQL databases, Docker environments, cloud fundamentals, and rapid adoption of new tech stacks.
-   - Body Paragraph 3 (Operational Leadership & Team Experience): Frame previous background as manager/operations lead (up to 2024) as several years of operational drift and team leadership (high stress resilience under real-time pressure, fast prioritization, clear unpretentious team communication, pragmatic crisis management). Avoid calling it "10+ years of operational leadership" to avoid confusion with IT/DevOps management.
+   - Body Paragraph 3 (Operational Leadership & Team Experience): Frame previous background as manager/operations lead (up to 2024) as several years of operational drift and team leadership (calm under real-time pressure, fast prioritization, clear unpretentious team communication, delivery ownership). Avoid calling it "10+ years of operational leadership" or using buzzwords like "crisis management".
    - Closing: Professional, direct, and polite (1-2 sentences).
+
+5. STRIPPED-DOWN EMAIL APPLICATION TEMPLATE (emailSubject & emailBody):
+   - emailSubject:
+     - Clear, professional subject line: "Application: [Exact Role Title] – ${profile.fullName || "Candidate"}" (include ad reference code if present in the posting).
+   - emailBody:
+     - Purpose: A stripped-down, crisp introductory message for when CV and cover letter are attached as PDFs. It must NEVER duplicate the full cover letter.
+     - Length: Exactly 3-4 short, punchy sentences (approx. 50-80 words total).
+     - Tone: Authentic developer klarspråk — direct, grounded, concrete, and unpretentious.
+     - STRICT FORBIDDEN PHRASES & AI-LINGO (NEVER USE):
+       * ❌ "paired with a strong focus on..."
+       * ❌ "reliable delivery"
+       * ❌ "with a passion for..." / "enthusiastic interest" / "thrilled to apply"
+       * ❌ "unique combination" / "unique ability"
+       * ❌ "agile mindset" / "solution-oriented" / "dynamic self-starter"
+       * ❌ Any apologies or senior title inflation.
+     - Content Structure:
+       1. Greeting: "Hi [Contact Name if mentioned in the job ad, otherwise Hiring Team],"
+       2. Direct hook & core technical match (1-2 sentences): State directly that you are applying for the [Role] at [Company]. Mention your core practical background plainly (e.g. C#/.NET backend and systems development, experience shipping software to production, and background in operational drift and team leadership) matching what they seek without buzzwords.
+       3. Reference to attachments & code (1 sentence): "I have attached my CV and cover letter with more details. You can also inspect my code and past projects on GitHub: ${profile.github || "link"}."
+       4. Straightforward closing: "Looking forward to hearing from you."
+       5. Sign-off with contact details:
+          Best regards,
+          ${profile.fullName}
+          ${profile.phone} | ${profile.email}
+          ${profile.linkedin ? profile.linkedin + " | " : ""}${profile.github || ""}
 
 JOB POSTING:
 Title: ${job.title}
@@ -425,6 +461,8 @@ Respond EXACTLY with this JSON schema (all string values translated into English
     }
   ],
   "coverLetter": "Full English cover letter formatted with greeting, paragraphs, and closing. Confident, direct, impact-driven, and completely free from AI fluff.",
+  "emailSubject": "Application: [Exact Role Title] – ${profile.fullName}",
+  "emailBody": "Stripped-down, authentic developer application email (3-4 sentences, no buzzwords, referencing attached CV and letter)",
   "diffNotes": [
     {
       "section": "Summary / Experience X / Skills",
@@ -456,6 +494,10 @@ STRIKTA REGLER FÖR TONALITET & SPRÅK (ANTI-FLUFF & INGEN SMÖRIGHET):
 Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autenticitet, rakhet och teknisk substans framför amerikansk "corporate fluff" och inställsamhet. Följ dessa principer stenhårt:
 
 1. FÖRBJUDNA FRASER & KLYSCHOR (SVARTLISTA - ANVÄND ALDRIG):
+   - ❌ "med en gedigen grund inom..." / "med en stark grund inom..." (passiv CV-klyscha; formulera vad du bygger och fokuserar på direkt)
+   - ❌ "Kombinerar djup teknisk förståelse för X med Y..." (konstlad AI-brygga; skriv raka meningar med aktiva verb)
+   - ❌ "djup teknisk förståelse" (beröm inte din egen förståelse med adjektiv; låt konkreta tekniker och projekt bevisa kunnandet)
+   - ❌ "krishantering" (konsultord; använd jordnära beskrivning som "snabba prioriteringar under press" eller "lugn i kritiska lägen")
    - ❌ "Med stor entusiasm ansöker jag härmed..."
    - ❌ "Jag har följt er med stort intresse / under en längre tid..." (om inte en specifik faktisk anledning finns)
    - ❌ "Lockas av er unika företagskultur / ambition att vara Sveriges bästa arbetsgivare / flexibla lönemodell" (upprepa ALDRIG företagets marknadsföringsfloskler som en papegoja)
@@ -468,20 +510,52 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
    - ❌ "Även om jag saknar erfarenhet av [X]..." (var ALDRIG defensiv eller ursäktande; fokusera istället proaktivt på en solid teknisk grund och snabb ramp-up).
 
 2. RIKTLINJER FÖR PERSONLIGT BREV:
-   - Inledning: Gå RAKT PÅ SAK i första meningen. Ange vilken roll det gäller och sammanfatta kärnan i vad kandidaten erbjuder (t.ex. stark C#-grund, systemarkitektur och flerårig erfarenhet av drift och teamledarskap).
+   - Inledning: Gå RAKT PÅ SAK i första meningen anpassad till rollens kärna (t.ex. vid GenAI: "Jag söker rollen som [Roll] hos er på [Företag]. Mitt fokus ligger på tillämpade GenAI- och RAG-system från hämtningslogik till fungerande gränssnitt, med en stabil ingenjörsgrund i Python och C#..."; vid C#/.NET: "Jag söker rollen som [Roll] hos er på [Företag]. Mitt fokus ligger på C#/.NET, systemarkitektur och prestandaoptimering, med erfarenhet av att bygga och släppa kommersiell mjukvara på Steam (No Final Run)...").
    - "Show, Don't Tell" (STAR): Referera till konkreta projekt ur portfolion/erfarenheten (t.ex. No Final Run, Oxide Arena, JobScope, Orbislinks RAG-agenter, PNS, examensarbetet). Förklara VAD som byggdes, vilka utmaningar som löstes (t.ex. prestandaoptimering, nätverkssynkronisering, flertrådning, trådsäkerhet, API-design) och hur det relaterar till annonsens krav.
-   - Tidigare ledarerfarenhet (fram till 2024): Presentera den som flerårig erfarenhet av operativ drift och teamledarskap i högintensiva miljöer – stresstålighet under hög press, tydlig och prestigelös teamkommunikation, snabba prioriteringar samt vana att ta ansvar för drift, kvalitet och leverans. Blås INTE upp det till "10+ års operativt ledarskap" och förväxla det inte med IT-drift.
+   - Tidigare ledarerfarenhet (fram till 2024): Presentera den som flerårig erfarenhet av operativ drift och teamledarskap i högintensiva miljöer – stresstålighet under hög press, tydlig och prestigelös teamkommunikation, snabba prioriteringar samt vana att ta ansvar för drift, kvalitet och leverans. Blås INTE upp det till "10+ års operativt ledarskap" och undvik konsultlingo som "krishantering".
    - Proaktiv teknikmatchning: Vid nya databaser/ramverk – lyft kandidatens gedigna SQL- och mjukvarugrund och snabba inlärningsförmåga utan att be om ursäkt.
    - Avslutning: Saklig, artig och professionell (1-2 meningar) utan svulstiga löften.
    - Omfång: Håll brevet koncist och lättläst (ca 3-4 korta, kärnfulla stycken).
 
-3. RIKTLINJER FÖR CV-PROFILTEXT (tailoredSummary) & ERFARENHETSPUNKTER:
-   - Profiltext (tailoredSummary): Exakt 2–3 kärnfulla, sakliga meningar. Hög teknisk densitet och absolut noll HR-floskler.
-     - Teknisk kärna: Gedigen grund inom C#/.NET, objektorienterad systemarkitektur och prestandaoptimering.
-     - Konkreta bevis: Erfarenhet av att driva mjukvaruprojekt från arkitektur till skarp produktionsrelease (t.ex. Steam) samt bygga robusta, multitrådade system.
-     - Inramning av operativt ledarskap: Översätt ALLTID tidigare drift- och ledarerfarenhet till konkreta, mänskliga beteenden (lugn i kritiska lägen, snabb prioritering under press, prestigelös teamkommunikation och starkt leveransansvar i teamet). Använd ALDRIG abstrakta klyschor som "stark förmåga till agil problemlösning" eller "lösningsorienterat arbetssätt".
-     - Tonalitet & meningsbyggnad: Skriv direkt och sakligt. Undvik säljande bryggor som "vilket ger en stark förmåga till...".
+3. RIKTLINJER FÖR CV-PROFILTEXT (tailoredSummary) & ROLLANPASSAD GULDSTANDARD:
+   - Längd: Exakt 2 kärnfulla, sakliga meningar. Hög teknisk densitet, aktiva verb och absolut noll HR-floskler.
+   - DYNAMISK POSITIONERING (Anpassa primär titel och fokus efter annonsens inriktning):
+     * Vid GenAI / AI / Data-roller: Led med tillämpad AI (RAG-arkitektur, agentiska arbetsflöden, Python, multimodala modeller) och solid systemutveckling. Lyft skarpa system (Orbislinks RAG-pipeline, examensarbetet med multimodal RAG på Azure, JobScope) och låt C#-grunden och Steam-releasen (No Final Run) samt operativt teamledarskap visa bredd och ingenjörsdisciplin.
+       Exempel på förebild: "AI- och systemutvecklare med fokus på tillämpad AI (RAG-pipelines, agentiska flöden) och robust systemarkitektur i Python och C#/.NET. Har byggt multimodala RAG-system på Azure, släppt kommersiell mjukvara på Steam (No Final Run) och har flerårig erfarenhet av operativt teamledarskap under högt tempo."
+     * Vid C#/.NET / Backend-roller: Led med backendarkitektur, flertrådning och prestandaoptimering.
+       Exempel på förebild: "C#/.NET-utvecklare med fokus på backendarkitektur, flertrådning och prestandaoptimering. Har byggt och släppt kommersiell mjukvara på Steam (No Final Run), med en tidigare bakgrund inom operativt teamledarskap och snabba prioriteringar i högt tempo."
+     * Vid Fullstack / Breda IT-roller: Balansera modern webb/backend (React/Next.js, Python, C#, SQL, Docker) och operativ driftsäkerhet.
+   - Hårda regler:
+     * Skriv ALDRIG "med en gedigen grund inom..."
+     * Skriv ALDRIG "Kombinerar [X] med [Y]..."
+     * Skriv ALDRIG "djup teknisk förståelse" eller "krishantering"
+     * Låt konkreta handlingar, teknologier och projekt tala för sig själva.
    - Erfarenhetspunkter (STAR): Hög teknisk densitet, tydliga mätbara resultat och exakt terminologi. Prioritera kompetenser som annonsen efterfrågar högst upp.
+
+4. RIKTLINJER FÖR AVSKALAT ANSÖKNINGSMEJL (emailSubject & emailBody):
+   - Ämnesrad (emailSubject):
+     - Format: "Ansökan: [Exakt rollnamn] – ${profile.fullName || "Kandidat"}" (inkludera eventuell annonsreferens/ID om det finns angivet i annonsen).
+   - Mejltext (emailBody):
+     - Syfte: Följemejl som klistras in när CV och personligt brev bifogas som PDF. Det ska ALDRIG upprepa hela det personliga brevet.
+     - Längd: Exakt 3–4 korta, kärnfulla meningar (ca 50–80 ord totalt).
+     - Språk & Tonalitet: Äkta utvecklarspråk (klarspråk). Avskalat, konkret och jordnära. Absolut ingen buzzword-sallad, inga CV-floskler och inget AI-lingo.
+     - STRIKT FÖRBJUDNA FRASER & AI-LINGO (ANVÄND ALDRIG):
+       * ❌ "kombinerat med ett starkt fokus på..." / "paired with a strong focus on..."
+       * ❌ "leveranssäkerhet" / "pålitlig leverans" / "reliable delivery"
+       * ❌ "brinner för..." / "med stor entusiasm ansöker jag..."
+       * ❌ "unik kombination av..." / "unik förmåga..."
+       * ❌ "spindeln i nätet" / "lösningsorienterad" / "agilt mindset" / "många bollar i luften"
+       * ❌ Inga ursäkter ("även om jag saknar...") och ingen uppblåst senioritet.
+     - Innehåll och struktur:
+       1. Hälsningsfras: "Hej [Kontaktpersonens förnamn om namngiven i annonsen, annars Rekryteringsteamet],"
+       2. Rak inledning & teknisk kärna (1–2 meningar): Ange rakt på sak att kandidaten söker rollen som [Rollnamn] hos [Företag]. Beskriv kort och sakligt den praktiska profilen (t.ex. C#/.NET, databaser, erfarenhet av att bygga och produktionssätta mjukvara samt tidigare erfarenhet av drift och teamledarskap) anpassat till rollen utan buzzwords.
+       3. Hänvisning till bilagor & projekt (1 mening): "Bifogat finner ni mitt CV och personliga brev. Se gärna även tidigare projekt och kod på min GitHub: ${profile.github || "länk"}."
+       4. Saklig avslutning: "Hör gärna av er om profilen låter intressant, så berättar jag mer vid en intervju."
+       5. Signatur med kontaktuppgifter:
+          Med vänlig hälsning,
+          ${profile.fullName}
+          ${profile.phone} | ${profile.email}
+          ${profile.linkedin ? profile.linkedin + " | " : ""}${profile.github || ""}
 
 JOBBANNONS:
 Titel: ${job.title}
@@ -521,6 +595,8 @@ Svara EXAKT med detta JSON-schema:
     }
   ],
   "coverLetter": "Fullständigt personligt brev formaterat i stycken med hälsningsfras och avslutning. Jordnära, konkret, genuint och fritt från klyschor och AI-smör.",
+  "emailSubject": "Ansökan: [Exakt rollnamn] – ${profile.fullName}",
+  "emailBody": "Avskalat och jordnära ansökningsmejl (3-4 meningar, noll floskler, hänvisning till bifogat CV och brev)",
   "diffNotes": [
     {
       "section": "Sammanfattning / Erfarenhet X / Färdigheter",
@@ -545,6 +621,8 @@ Svara EXAKT med detta JSON-schema:
   const parsed = JSON.parse(text);
   return {
     language: activeLanguage,
+    emailSubject: parsed.emailSubject || "",
+    emailBody: parsed.emailBody || "",
     ...parsed,
   };
 }

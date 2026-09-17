@@ -23,7 +23,7 @@ const profileData = {
   linkedin: "https://linkedin.com/in/stefan-lundberg-30055584",
   github: "https://github.com/StefanLundberg77",
   summary:
-    "Kreativ och analytisk systemutvecklare med specialisering inom C#/.NET, Python, objektorienterad systemarkitektur och tillämpad AI (RAG och intelligenta agenter). Kombinerar djup teknisk förståelse för nätverk, multitrådade system och prestandaoptimering med flerårig erfarenhet av operativ drift, teamledarskap och krishantering. Erfarenhet av att leda mjukvaruutveckling från idé och arkitektur hela vägen till skarp produktionsrelease på Steam.",
+    "Kreativ och analytisk system- och AI-utvecklare med specialisering inom tillämpad AI (RAG och intelligenta agenter), Python, C#/.NET och objektorienterad systemarkitektur. Kombinerar tekniskt djup inom prestandaoptimering, API-integrationer och maskininlärningsflöden med flerårig erfarenhet av operativ drift, teamledarskap och snabba prioriteringar under press. Erfarenhet av att ta mjukvara hela vägen från arkitektur och kod till kommersiell release på Steam.",
   experiences: [
     {
       id: "exp-1",
@@ -112,12 +112,12 @@ const profileData = {
       description:
         "Flerårig erfarenhet av operativ drift, personalansvar (team upp till 20 medarbetare), schemaläggning, ekonomisk uppföljning och gästupplevelse i högintensiva miljöer.",
       achievements: [
-        "Överförbara styrkor: Agil problemlösning under extrem tidspress, tydlig teamkommunikation, konflikthantering och strukturerat kvalitetsarbete.",
+        "Överförbara styrkor: Stresstålighet och prioritering under hård tidspress, tydlig teamkommunikation, konflikthantering och strukturerat kvalitetsarbete.",
         "Ledaransvar: Ledde team på upp till 20 personer med schemaläggning, budget, inventering och leverantörskontakter."
       ],
       skills: [
         "Ledarskap",
-        "Krishantering",
+        "Snabba prioriteringar",
         "Teamledning",
         "Problemlösning under press",
         "Kvalitetsarbete"

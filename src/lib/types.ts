@@ -103,6 +103,8 @@ export interface TailoredCvData {
   tailoredExperiences: WorkExperience[];
   tailoredSkills: SkillCategory[];
   coverLetter: string;
+  emailSubject: string;
+  emailBody: string;
   diffNotes: {
     section: string;
     change: string;
@@ -156,6 +158,8 @@ export interface JobItem {
     tailoredExperiences: WorkExperience[];
     tailoredSkills: SkillCategory[];
     coverLetter: string;
+    emailSubject?: string;
+    emailBody?: string;
     diffNotes?: { section: string; change: string; rationale: string }[];
     notes?: string | null;
     updatedAt: string;

@@ -16,6 +16,7 @@ import {
   Loader2,
   FileText,
   Mail,
+  Send,
   SlidersHorizontal,
   ChevronRight,
   TrendingUp,
@@ -108,7 +109,7 @@ export function TailorStudio({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [copiedLetter, setCopiedLetter] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"cv" | "letter" | "print" | "jobinfo">("cv");
+  const [activeTab, setActiveTab] = useState<"cv" | "letter" | "email" | "print" | "jobinfo">("cv");
 
   // Language options: auto-detect or force Swedish/English
   const [languageOption, setLanguageOption] = useState<"auto" | "sv" | "en">("auto");
@@ -120,6 +121,11 @@ export function TailorStudio({
   const [tailoredExperiences, setTailoredExperiences] = useState<WorkExperience[]>([]);
   const [tailoredSkills, setTailoredSkills] = useState<SkillCategory[]>([]);
   const [coverLetter, setCoverLetter] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [copiedSubject, setCopiedSubject] = useState(false);
+  const [copiedEmailBody, setCopiedEmailBody] = useState(false);
+  const [copiedAll, setCopiedAll] = useState(false);
   const [diffNotes, setDiffNotes] = useState<
     { section: string; change: string; rationale: string }[]
   >([]);
@@ -155,6 +161,8 @@ export function TailorStudio({
             setTailoredExperiences(app.tailoredExperiences || []);
             setTailoredSkills(app.tailoredSkills || []);
             setCoverLetter(app.coverLetter || "");
+            setEmailSubject(app.emailSubject || "");
+            setEmailBody(app.emailBody || "");
             setDiffNotes(app.diffNotes || []);
             setNotes(app.notes || "");
             if (app.language === "en" || app.language === "sv") {
@@ -207,6 +215,8 @@ export function TailorStudio({
       setTailoredExperiences(data.tailoredExperiences);
       setTailoredSkills(data.tailoredSkills);
       setCoverLetter(data.coverLetter);
+      setEmailSubject(data.emailSubject || "");
+      setEmailBody(data.emailBody || "");
       setDiffNotes(data.diffNotes || []);
       setMatchAnalysis(data.matchAnalysis);
       if (data.language === "en" || data.language === "sv") {
@@ -244,6 +254,8 @@ export function TailorStudio({
           tailoredExperiences,
           tailoredSkills,
           coverLetter,
+          emailSubject,
+          emailBody,
           language: activeLanguage,
           notes,
         }),
@@ -286,6 +298,37 @@ export function TailorStudio({
     navigator.clipboard.writeText(coverLetter);
     setCopiedLetter(true);
     setTimeout(() => setCopiedLetter(false), 2500);
+  };
+
+  const copySubject = () => {
+    navigator.clipboard.writeText(emailSubject);
+    setCopiedSubject(true);
+    setTimeout(() => setCopiedSubject(false), 2500);
+  };
+
+  const copyEmailBody = () => {
+    navigator.clipboard.writeText(emailBody);
+    setCopiedEmailBody(true);
+    setTimeout(() => setCopiedEmailBody(false), 2500);
+  };
+
+  const copyAllEmail = () => {
+    const full = `Ämne: ${emailSubject}\n\n${emailBody}`;
+    navigator.clipboard.writeText(full);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2500);
+  };
+
+  const handleOpenMailClient = () => {
+    if (!job) return;
+    const subject = encodeURIComponent(
+      emailSubject || `Ansökan: ${job.title} – ${masterProfile?.fullName || ""}`
+    );
+    const bodyText = encodeURIComponent(emailBody || "");
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+    const found = job.description?.match(emailRegex) || [];
+    const recipient = found.length > 0 ? found[0] : "";
+    window.location.href = `mailto:${recipient}?subject=${subject}&body=${bodyText}`;
   };
 
   if (loading || !job) {
@@ -505,6 +548,18 @@ export function TailorStudio({
         >
           <Mail className="h-4 w-4" />
           Personligt Brev
+        </button>
+
+        <button
+          onClick={() => setActiveTab("email")}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all ${
+            activeTab === "email"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400"
+          }`}
+        >
+          <Send className="h-4 w-4" />
+          Ansökningsmejl
         </button>
 
         <button
@@ -765,6 +820,149 @@ export function TailorStudio({
             placeholder="Klicka på 'Optimera CV & Brev' för att generera ett personligt brev..."
             className="w-full rounded-xl border border-neutral-300 p-4 text-sm leading-relaxed focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
           />
+        </div>
+      )}
+
+      {/* TAB: Email Application Template */}
+      {activeTab === "email" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  Optimerat Ansökningsmejl
+                </h3>
+                <p className="text-xs text-neutral-500">
+                  En avskalad hisspitch (3–4 meningar) fri från fluff, avsedd att klistras in i mejlet när du bifogar ditt CV och brev som PDF.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={copyAllEmail}
+                  className="flex items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  title="Kopiera både ämnesrad och mejltext till urklipp"
+                >
+                  {copiedAll ? (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                      Allt kopierat!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      Kopiera allt
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenMailClient}
+                  className="flex items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  title="Öppna ditt förvalda e-postprogram med ämne och text ifyllt"
+                >
+                  <Send className="h-3.5 w-3.5 text-blue-600" />
+                  Öppna i e-post
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveManual}
+                  disabled={savingManual}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  Spara ändringar
+                </button>
+              </div>
+            </div>
+
+            {/* Field 1: Subject line */}
+            <div className="space-y-1.5 mb-5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
+                  Ämnesrad (Subject)
+                </label>
+                <button
+                  type="button"
+                  onClick={copySubject}
+                  className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {copiedSubject ? (
+                    <>
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      Kopierat!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3" />
+                      Kopiera ämne
+                    </>
+                  )}
+                </button>
+              </div>
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Ansökan: [Rollnamn] – [Ditt namn]"
+                className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm font-medium focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              />
+            </div>
+
+            {/* Field 2: Email Body */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
+                  Mejltext (Brödtext)
+                </label>
+                <button
+                  type="button"
+                  onClick={copyEmailBody}
+                  className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {copiedEmailBody ? (
+                    <>
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      Kopierat!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3" />
+                      Kopiera mejltext
+                    </>
+                  )}
+                </button>
+              </div>
+              <textarea
+                rows={12}
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                placeholder="Klicka på 'Optimera CV & Brev' för att generera ett avskalat ansökningsmejl..."
+                className="w-full rounded-xl border border-neutral-300 p-4 text-sm leading-relaxed font-sans focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              />
+            </div>
+          </div>
+
+          {/* Practical application advice / Anti-fluff guide */}
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-4 text-xs text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-400 space-y-2">
+            <h4 className="font-bold text-neutral-800 dark:text-neutral-200">
+              💡 Råd inför utskicket
+            </h4>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>
+                <strong>Håll mejlet kort:</strong> Rekryteraren scannar mejlet på 5–10 sekunder. Mejlet är en hisspitch vars enda mål är att få dem att öppna bilagorna.
+              </li>
+              <li>
+                <strong>Bifoga alltid PDF:</strong> Döp dina filer professionellt, t.ex. <code className="rounded bg-neutral-200 px-1 py-0.5 font-mono text-[11px] dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">{`CV - ${masterProfile?.fullName || "Stefan Lundberg"}.pdf`}</code> och <code className="rounded bg-neutral-200 px-1 py-0.5 font-mono text-[11px] dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">{`Personligt Brev - ${masterProfile?.fullName || "Stefan Lundberg"}.pdf`}</code>.
+              </li>
+              <li>
+                <strong>Inga floskler:</strong> Inga slitna klyschor (&quot;Med stor entusiasm&quot;, &quot;spindeln i nätet&quot;). Klarspråk och konkreta tekniska styrkor väger tyngst.
+              </li>
+            </ul>
+          </div>
         </div>
       )}
 

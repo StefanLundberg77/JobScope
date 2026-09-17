@@ -19,12 +19,12 @@ export async function GET() {
         data: {
           id: "default",
           geminiApiKey: process.env.GEMINI_API_KEY || "",
-          targetRole: "Systemutvecklare / Fullstack",
+          targetRole: "Systemutvecklare & AI-utvecklare",
           targetLocations: "Göteborg",
           workPreference: "any",
           broadItSearch: true,
           minScore: 50,
-          searchKeywords: "Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps",
+          searchKeywords: "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, IT-support",
         },
       });
     }
@@ -76,12 +76,12 @@ export async function PUT(req: Request) {
       create: {
         id: "default",
         geminiApiKey: geminiApiKey?.trim() || "",
-        targetRole: targetRole || "Systemutvecklare",
+        targetRole: targetRole || "Systemutvecklare & AI-utvecklare",
         targetLocations: targetLocations || "Göteborg",
         workPreference: workPreference || "any",
         broadItSearch: broadItSearch !== undefined ? Boolean(broadItSearch) : true,
         minScore: minScore !== undefined ? Number(minScore) : 50,
-        searchKeywords: searchKeywords || "Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps",
+        searchKeywords: searchKeywords || "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, IT-support",
       },
     });
 

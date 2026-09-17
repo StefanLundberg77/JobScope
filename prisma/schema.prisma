@@ -59,6 +59,8 @@ model TailoredApplication {
   tailoredExperiences String     @default("[]")
   tailoredSkills      String     @default("[]")
   coverLetter         String     @default("")
+  emailSubject        String     @default("")
+  emailBody           String     @default("")
   language            String     @default("sv")
   diffNotes           String?
   notes               String?
@@ -69,12 +71,12 @@ model TailoredApplication {
 model UserSettings {
   id              String   @id @default("default")
   geminiApiKey    String?
-  targetRole      String   @default("Systemutvecklare")
+  targetRole      String   @default("Systemutvecklare & AI-utvecklare")
   targetLocations String   @default("Göteborg")
   workPreference  String   @default("any")
   broadItSearch   Boolean  @default(true)
   minScore        Int      @default(50)
-  searchKeywords  String   @default("Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps")
+  searchKeywords  String   @default("AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, IT-support")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

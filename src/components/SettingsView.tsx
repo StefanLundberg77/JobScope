@@ -23,13 +23,13 @@ import {
 export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [hasEnvKey, setHasEnvKey] = useState(false);
-  const [targetRole, setTargetRole] = useState("Systemutvecklare / Fullstack");
+  const [targetRole, setTargetRole] = useState("Systemutvecklare & AI-utvecklare");
   const [targetLocations, setTargetLocations] = useState("Göteborg");
   const [workPreference, setWorkPreference] = useState("any");
   const [broadItSearch, setBroadItSearch] = useState(true);
   const [minScore, setMinScore] = useState(50);
   const [searchKeywords, setSearchKeywords] = useState(
-    "Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps"
+    "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, IT-support"
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
     const minScoreThreshold = body.minScore ?? settings?.minScore ?? 50;
     const broadIt = body.broadIt ?? settings?.broadItSearch ?? true;
-    const query = body.query || (!broadIt ? (settings?.targetRole || "Systemutvecklare") : "");
+    const query = body.query || (!broadIt ? (settings?.targetRole || "Systemutvecklare & AI-utvecklare") : "");
     const location = body.location || (settings?.targetLocations?.toLowerCase().includes("göteborg") ? "goteborg" : "all");
     const remote = body.remote ?? (settings?.workPreference === "remote");
 
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         email: profileRecord.email,
         phone: profileRecord.phone,
         location: profileRecord.location || "Göteborg",
-        title: profileRecord.title || settings?.targetRole || "Systemutvecklare",
+        title: profileRecord.title || settings?.targetRole || "Systemutvecklare & AI-utvecklare",
         summary: profileRecord.summary || "",
         website: profileRecord.website,
         linkedin: profileRecord.linkedin,
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
         limit: 25,
       }),
       searchLinkedInJobs({
-        query: query || (broadIt ? "IT OR Utvecklare OR Developer" : (settings?.targetRole || "Systemutvecklare")),
+        query: query || (broadIt ? "IT OR Utvecklare OR Developer OR AI OR GenAI" : (settings?.targetRole || "Systemutvecklare & AI-utvecklare")),
         location,
         remote,
         limit: 20,

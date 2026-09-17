@@ -32,8 +32,9 @@ interface JobSearchViewProps {
  */
 const QUICK_IT_FILTERS = [
   { label: "Alla IT-jobb", query: "", broad: true },
-  { label: "C# / .NET", query: "C# .NET", broad: true },
+  { label: "GenAI & RAG", query: "GenAI AI RAG", broad: true },
   { label: "Python & AI", query: "Python AI", broad: true },
+  { label: "C# / .NET", query: "C# .NET", broad: true },
   { label: "Fullstack", query: "Fullstack", broad: true },
   { label: "Support & Drift", query: "Support Drift", broad: true },
   { label: "DevOps & Cloud", query: "DevOps Cloud", broad: true },
