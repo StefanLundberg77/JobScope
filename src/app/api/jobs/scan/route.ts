@@ -75,13 +75,26 @@ export async function POST(req: Request) {
     const jtHits = jobTechRes.status === "fulfilled" ? jobTechRes.value.hits || [] : [];
     const liHits = linkedInRes.status === "fulfilled" ? linkedInRes.value.hits || [] : [];
 
-    // 4. Fetch existing job external IDs to avoid duplicates
-    const existingJobs = await prisma.jobListing.findMany({
-      select: { externalId: true, title: true, company: true },
-    });
+    // 4. Fetch existing job external IDs and blocked jobs to avoid duplicates and blocked listings
+    const [existingJobs, blockedJobs] = await Promise.all([
+      prisma.jobListing.findMany({
+        select: { externalId: true, title: true, company: true },
+      }),
+      prisma.blockedJob.findMany({
+        select: { externalId: true, title: true, company: true },
+      }),
+    ]);
+
     const existingIds = new Set(existingJobs.map((j) => j.externalId).filter(Boolean));
     const existingTitleComp = new Set(
       existingJobs.map((j) => `${j.title.toLowerCase()}___${j.company.toLowerCase()}`)
+    );
+
+    const blockedIds = new Set(blockedJobs.map((b) => b.externalId).filter(Boolean));
+    const blockedTitleComp = new Set(
+      blockedJobs.map(
+        (b) => `${(b.title || "").toLowerCase()}___${(b.company || "").toLowerCase()}`
+      )
     );
 
     const candidates: Array<{
@@ -94,7 +107,12 @@ export async function POST(req: Request) {
 
     for (const h of liHits) {
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
-      if (!existingIds.has(h.id) && !existingTitleComp.has(key)) {
+      if (
+        !existingIds.has(h.id) &&
+        !existingTitleComp.has(key) &&
+        !blockedIds.has(h.id) &&
+        !blockedTitleComp.has(key)
+      ) {
         candidates.push({
           externalId: h.id,
           source: "linkedin",
@@ -107,7 +125,12 @@ export async function POST(req: Request) {
 
     for (const h of jtHits) {
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
-      if (!existingIds.has(h.id) && !existingTitleComp.has(key)) {
+      if (
+        !existingIds.has(h.id) &&
+        !existingTitleComp.has(key) &&
+        !blockedIds.has(h.id) &&
+        !blockedTitleComp.has(key)
+      ) {
         candidates.push({
           externalId: h.id,
           source: "jobtech",

@@ -202,4 +202,17 @@ export interface UnifiedJobHit {
   nice_to_have?: {
     skills?: { label: string }[];
   };
+  isBlocked?: boolean;
 }
+
+/**
+ * Entity representing an ignored or blocked job ad.
+ */
+export interface BlockedJobItem {
+  id: string;
+  externalId: string;
+  title?: string | null;
+  company?: string | null;
+  createdAt: string;
+}
+

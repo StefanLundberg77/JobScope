@@ -43,26 +43,83 @@ export async function getGeminiClient(): Promise<GoogleGenerativeAI> {
 
 /**
  * Retrieves the configured AI model for Gemini, prioritizing user settings in SQLite
- * before falling back to the GEMINI_MODEL environment variable or "gemini-2.5-flash".
+ * before falling back to the GEMINI_MODEL environment variable or "gemini-3.6-flash".
+ * Automatically maps deprecated 2.5 models to their active 3.x counterparts.
  *
  * @param preferredModel Optional model override for the invocation
  * @returns The active Gemini model name
  */
 export async function getActiveAiModel(preferredModel?: string): Promise<string> {
+  const normalizeModel = (modelName: string): string => {
+    const trimmed = modelName.trim();
+    if (trimmed === "gemini-2.5-flash") return "gemini-3.6-flash";
+    if (trimmed === "gemini-2.5-pro") return "gemini-3.8-flash";
+    return trimmed;
+  };
+
   if (preferredModel?.trim()) {
-    return preferredModel.trim();
+    return normalizeModel(preferredModel);
   }
 
   try {
     const settings = await prisma.userSettings.findFirst();
     if (settings?.aiModel?.trim()) {
-      return settings.aiModel.trim();
+      return normalizeModel(settings.aiModel);
     }
   } catch (error) {
     console.error("Failed to read UserSettings for AI model:", error);
   }
 
-  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  return normalizeModel(process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash");
+}
+
+/**
+ * Executes a generateContent call with automatic fallback across compatible models
+ * (e.g. gemini-3.6-flash -> gemini-3.5-flash -> gemini-3.8-flash)
+ * if Google's endpoint returns a 503 high demand spike, 429 quota, or 404 model error.
+ */
+export async function generateContentWithFallback(
+  genAI: GoogleGenerativeAI,
+  preferredModel: string,
+  contents: Parameters<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>[0],
+  generationConfig?: {
+    responseMimeType?: string;
+    temperature?: number;
+  }
+) {
+  const candidateModels = Array.from(
+    new Set([preferredModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash"])
+  );
+
+  let lastError: any;
+  for (const modelName of candidateModels) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig,
+      });
+      return await model.generateContent(contents);
+    } catch (err: any) {
+      lastError = err;
+      const isTransientOrNotFound =
+        err?.status === 503 ||
+        err?.status === 404 ||
+        err?.status === 429 ||
+        err?.message?.includes("503") ||
+        err?.message?.includes("404") ||
+        err?.message?.includes("high demand") ||
+        err?.message?.includes("not found");
+
+      if (isTransientOrNotFound && modelName !== candidateModels[candidateModels.length - 1]) {
+        console.warn(
+          `[JobScope Gemini] Model ${modelName} returned temporary error (${err.message}). Retrying with fallback model...`
+        );
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
 }
 
 /**
@@ -86,13 +143,6 @@ export async function parseProfileWithAI(
 ): Promise<Partial<MasterProfileData>> {
   const genAI = await getGeminiClient();
   const selectedModel = await getActiveAiModel(options?.model);
-  const model = genAI.getGenerativeModel({
-    model: selectedModel,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.1,
-    },
-  });
 
   const baseInstructions = `
 Du är en erfaren rekryteringsexpert och dataextraherare.
@@ -175,18 +225,34 @@ Svara EXAKT med detta JSON-schema:
 
   let result;
   if (input.pdfBase64) {
-    result = await model.generateContent([
-      {
-        inlineData: {
-          data: input.pdfBase64,
-          mimeType: "application/pdf",
+    result = await generateContentWithFallback(
+      genAI,
+      selectedModel,
+      [
+        {
+          inlineData: {
+            data: input.pdfBase64,
+            mimeType: "application/pdf",
+          },
         },
-      },
-      baseInstructions,
-    ]);
+        baseInstructions,
+      ],
+      {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+      }
+    );
   } else if (input.rawText) {
     const prompt = `${baseInstructions}\n\nKälltext:\n"""\n${input.rawText}\n"""`;
-    result = await model.generateContent(prompt);
+    result = await generateContentWithFallback(
+      genAI,
+      selectedModel,
+      prompt,
+      {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+      }
+    );
   } else {
     throw new Error("Varken text eller PDF-fil angavs för import.");
   }
@@ -228,13 +294,6 @@ export async function analyzeJobMatchWithAI(
 ): Promise<MatchAnalysis> {
   const genAI = await getGeminiClient();
   const selectedModel = await getActiveAiModel(options?.model);
-  const model = genAI.getGenerativeModel({
-    model: selectedModel,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.2,
-    },
-  });
 
   const prompt = `
 Du är en senior teknisk rekryterare och ATS-expert.
@@ -311,7 +370,15 @@ Svara EXAKT med detta JSON-schema:
 }
 `;
 
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithFallback(
+    genAI,
+    selectedModel,
+    prompt,
+    {
+      responseMimeType: "application/json",
+      temperature: 0.2,
+    }
+  );
   const text = result.response.text();
   return JSON.parse(text);
 }
@@ -355,13 +422,6 @@ export async function tailorApplicationWithAI(
 ): Promise<TailoredCvData> {
   const genAI = await getGeminiClient();
   const selectedModel = await getActiveAiModel(options?.model);
-  const model = genAI.getGenerativeModel({
-    model: selectedModel,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.3,
-    },
-  });
 
   // Determine active language
   const detectedLang = detectJobLanguage(`${job.title} ${job.description}`);
@@ -646,7 +706,15 @@ Svara EXAKT med detta JSON-schema:
 `;
   }
 
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithFallback(
+    genAI,
+    selectedModel,
+    prompt,
+    {
+      responseMimeType: "application/json",
+      temperature: 0.3,
+    }
+  );
   const text = result.response.text();
   const parsed = JSON.parse(text);
   return {

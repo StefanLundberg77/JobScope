@@ -19,7 +19,7 @@ export async function GET() {
         data: {
           id: "default",
           geminiApiKey: process.env.GEMINI_API_KEY || "",
-          aiModel: "gemini-2.5-flash",
+          aiModel: "gemini-3.6-flash",
           targetRole: "Systemutvecklare & AI-utvecklare",
           targetLocations: "Göteborg",
           workPreference: "any",
@@ -64,11 +64,19 @@ export async function PUT(req: Request) {
       searchKeywords,
     } = body;
 
+    const normalizeModel = (model?: string) => {
+      const trimmed = model?.trim();
+      if (!trimmed) return "gemini-3.6-flash";
+      if (trimmed === "gemini-2.5-flash") return "gemini-3.6-flash";
+      if (trimmed === "gemini-2.5-pro") return "gemini-3.8-flash";
+      return trimmed;
+    };
+
     const settings = await prisma.userSettings.upsert({
       where: { id: "default" },
       update: {
         ...(geminiApiKey !== undefined && { geminiApiKey: geminiApiKey.trim() }),
-        ...(aiModel !== undefined && { aiModel: aiModel.trim() }),
+        ...(aiModel !== undefined && { aiModel: normalizeModel(aiModel) }),
         ...(targetRole !== undefined && { targetRole }),
         ...(targetLocations !== undefined && { targetLocations }),
         ...(workPreference !== undefined && { workPreference }),
@@ -79,7 +87,7 @@ export async function PUT(req: Request) {
       create: {
         id: "default",
         geminiApiKey: geminiApiKey?.trim() || "",
-        aiModel: aiModel?.trim() || "gemini-2.5-flash",
+        aiModel: normalizeModel(aiModel),
         targetRole: targetRole || "Systemutvecklare & AI-utvecklare",
         targetLocations: targetLocations || "Göteborg",
         workPreference: workPreference || "any",

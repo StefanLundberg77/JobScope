@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { searchJobTech, OCCUPATION_FIELD_DATA_IT, normalizeJobTechWorkplaceModel } from "@/lib/jobtech";
 import { searchLinkedInJobs } from "@/lib/linkedin";
 import { UnifiedJobHit } from "@/lib/types";
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
       | "region_14"
       | "all";
     const remote = searchParams.get("remote") === "true";
+    const includeBlocked = searchParams.get("includeBlocked") === "true";
     const source = (searchParams.get("source") || "all") as "all" | "jobtech" | "linkedin";
     const sort = searchParams.get("sort") || "relevance";
     const jtSort = sort === "date" ? ("pubdate-desc" as const) : undefined;
@@ -78,6 +80,24 @@ export async function GET(req: Request) {
     // Filter out strictly on-site jobs if user selected remote filter
     if (remote) {
       hits = hits.filter((h) => h.workplace_model !== "onsite");
+      totalCount = hits.length;
+    }
+
+    // Query blocked jobs from database
+    const blockedRecords = await prisma.blockedJob.findMany({
+      select: { externalId: true },
+    });
+    const blockedSet = new Set(blockedRecords.map((b) => b.externalId));
+
+    // Tag each hit with its blocked status
+    hits = hits.map((h) => ({
+      ...h,
+      isBlocked: blockedSet.has(h.id),
+    }));
+
+    // Unless includeBlocked is explicitly requested, exclude blocked listings from the results
+    if (!includeBlocked) {
+      hits = hits.filter((h) => !blockedSet.has(h.id));
       totalCount = hits.length;
     }
 

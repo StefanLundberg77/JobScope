@@ -25,7 +25,7 @@ import {
 export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
   const [hasEnvKey, setHasEnvKey] = useState(false);
-  const [aiModel, setAiModel] = useState("gemini-2.5-flash");
+  const [aiModel, setAiModel] = useState("gemini-3.6-flash");
   const [targetRole, setTargetRole] = useState("Systemutvecklare & AI-utvecklare");
   const [targetLocations, setTargetLocations] = useState("Göteborg");
   const [workPreference, setWorkPreference] = useState("any");
@@ -47,7 +47,15 @@ export function SettingsView() {
           const data = await res.json();
           setApiKey(data.geminiApiKey || "");
           setHasEnvKey(data.hasEnvApiKey || false);
-          if (data.aiModel) setAiModel(data.aiModel);
+          if (data.aiModel) {
+            const mappedModel =
+              data.aiModel === "gemini-2.5-flash"
+                ? "gemini-3.6-flash"
+                : data.aiModel === "gemini-2.5-pro"
+                ? "gemini-3.8-flash"
+                : data.aiModel;
+            setAiModel(mappedModel);
+          }
           if (data.targetRole) setTargetRole(data.targetRole);
           if (data.targetLocations) setTargetLocations(data.targetLocations);
           if (data.workPreference) setWorkPreference(data.workPreference);
@@ -208,10 +216,10 @@ export function SettingsView() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Gemini 2.5 Flash */}
+            {/* Gemini 3.6 Flash */}
             <label
               className={`relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${
-                aiModel === "gemini-2.5-flash"
+                aiModel === "gemini-3.6-flash"
                   ? "border-blue-500 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/20 shadow-xs"
                   : "border-neutral-200 bg-white hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
               }`}
@@ -219,34 +227,34 @@ export function SettingsView() {
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-semibold text-sm text-neutral-900 dark:text-white flex items-center gap-1.5">
                   <Zap className="h-4 w-4 text-amber-500" />
-                  Gemini 2.5 Flash
+                  Gemini 3.6 Flash
                 </span>
                 <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                  Standard & Snabb
+                  Standard & 100% Gratis
                 </span>
               </div>
               <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3">
-                Blixtsnabb (1–3 s) och extremt kostnadseffektiv (eller gratis i Free Tier). Rekommenderas för automatisk matchning, sökning och snabb CV-skräddarsyning.
+                Blixtsnabb (1–3 s) och 100 % kostnadsfri i Google AI Studio Free Tier. Rekommenderas för automatisk matchning, sökning och snabb CV-skräddarsyning.
               </p>
               <div className="mt-auto flex items-center gap-2">
                 <input
                   type="radio"
                   name="aiModel"
-                  value="gemini-2.5-flash"
-                  checked={aiModel === "gemini-2.5-flash"}
-                  onChange={() => setAiModel("gemini-2.5-flash")}
+                  value="gemini-3.6-flash"
+                  checked={aiModel === "gemini-3.6-flash"}
+                  onChange={() => setAiModel("gemini-3.6-flash")}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Välj Flash (Rekommenderad)
+                  Välj 3.6 Flash (Rekommenderad)
                 </span>
               </div>
             </label>
 
-            {/* Gemini 2.5 Pro */}
+            {/* Gemini 3.8 Flash */}
             <label
               className={`relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${
-                aiModel === "gemini-2.5-pro"
+                aiModel === "gemini-3.8-flash"
                   ? "border-blue-500 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/20 shadow-xs"
                   : "border-neutral-200 bg-white hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
               }`}
@@ -254,34 +262,34 @@ export function SettingsView() {
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-semibold text-sm text-neutral-900 dark:text-white flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-indigo-500" />
-                  Gemini 2.5 Pro
+                  Gemini 3.8 Flash
                 </span>
                 <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
-                  Djup resonemangsnivå
+                  Senaste & Hög kapacitet
                 </span>
               </div>
               <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3">
-                Högsta språkliga finess och djupare logisk analys för personliga brev. Tar något längre tid (5–10 s) och drar fler tokens på betalkonton.
+                Googles senaste generation av Flash med utökad resonemangsförmåga för djupare analys och nyanserat personligt brev.
               </p>
               <div className="mt-auto flex items-center gap-2">
                 <input
                   type="radio"
                   name="aiModel"
-                  value="gemini-2.5-pro"
-                  checked={aiModel === "gemini-2.5-pro"}
-                  onChange={() => setAiModel("gemini-2.5-pro")}
+                  value="gemini-3.8-flash"
+                  checked={aiModel === "gemini-3.8-flash"}
+                  onChange={() => setAiModel("gemini-3.8-flash")}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Välj Pro (Avancerad)
+                  Välj 3.8 Flash (Senaste)
                 </span>
               </div>
             </label>
           </div>
 
           <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600 dark:bg-neutral-800/60 dark:text-neutral-300 border border-neutral-100 dark:border-neutral-800">
-            <span className="font-semibold text-neutral-800 dark:text-neutral-200">Tips om budget & gratisnivå:</span>{" "}
-            Fick du ett mejl om att du uppnått din budget i Google Cloud? Kör på <strong>Gemini 2.5 Flash</strong> för minimal tokenåtgång, eller skapa en API-nyckel i ett projekt utan kopplat kreditkort i Google AI Studio för 100% gratis körning.
+            <span className="font-semibold text-neutral-800 dark:text-neutral-200">Tips om gratisnivå:</span>{" "}
+            Med en API-nyckel skapad i ett projekt utan kopplat kreditkort i Google AI Studio körs allt på den rena gratisnivån med <strong>Gemini 3.6 Flash</strong> utan någon som helst kostnad.
           </div>
         </div>
 

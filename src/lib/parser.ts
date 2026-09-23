@@ -4,7 +4,11 @@
  * or scraped external web pages into structured schema objects.
  */
 
-import { getGeminiClient } from "./gemini";
+import {
+  generateContentWithFallback,
+  getActiveAiModel,
+  getGeminiClient,
+} from "./gemini";
 
 /**
  * Structured schema representing an extracted job advertisement.
@@ -30,13 +34,7 @@ export interface ParsedJobAd {
  */
 export async function parseJobAdText(text: string, sourceUrl?: string): Promise<ParsedJobAd> {
   const genAI = await getGeminiClient();
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.1,
-    },
-  });
+  const selectedModel = await getActiveAiModel();
 
   const prompt = `
 Analysera följande jobbannonstext och extrahera all relevant information i strikt JSON-format:
@@ -59,7 +57,15 @@ Svara EXAKT med detta JSON-schema:
 }
 `;
 
-  const result = await model.generateContent(prompt);
+  const result = await generateContentWithFallback(
+    genAI,
+    selectedModel,
+    prompt,
+    {
+      responseMimeType: "application/json",
+      temperature: 0.1,
+    }
+  );
   const data = JSON.parse(result.response.text());
 
   return {

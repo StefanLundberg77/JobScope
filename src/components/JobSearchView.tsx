@@ -16,6 +16,8 @@ import {
   RefreshCw,
   Layers,
   ArrowUpDown,
+  Ban,
+  EyeOff,
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
 
@@ -63,6 +65,11 @@ export function JobSearchView({
   const [savedJobIds, setSavedJobIds] = useState<Record<string, string>>({}); // externalId -> localDbId
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // Blocked job listings state
+  const [blockedJobIds, setBlockedJobIds] = useState<Set<string>>(new Set());
+  const [hideBlocked, setHideBlocked] = useState(true);
+  const [blockingId, setBlockingId] = useState<string | null>(null);
+
   // Daily scan state
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
@@ -72,7 +79,8 @@ export function JobSearchView({
     overrideQuery?: string,
     overrideSource?: "all" | "linkedin" | "jobtech",
     overrideBroadIt?: boolean,
-    overrideSort?: "relevance" | "date"
+    overrideSort?: "relevance" | "date",
+    overrideHideBlocked?: boolean
   ) => {
     setLoading(true);
     try {
@@ -80,6 +88,7 @@ export function JobSearchView({
       const s = overrideSource !== undefined ? overrideSource : source;
       const b = overrideBroadIt !== undefined ? overrideBroadIt : broadIt;
       const so = overrideSort !== undefined ? overrideSort : sort;
+      const hb = overrideHideBlocked !== undefined ? overrideHideBlocked : hideBlocked;
       const params = new URLSearchParams({
         q,
         location,
@@ -87,6 +96,7 @@ export function JobSearchView({
         source: s,
         broadIt: b ? "true" : "false",
         sort: so,
+        includeBlocked: hb ? "false" : "true",
         limit: "25",
       });
 
@@ -117,7 +127,75 @@ export function JobSearchView({
         setSavedJobIds(map);
       })
       .catch(() => {});
-  }, [location, remoteOnly, source, broadIt, sort]);
+
+    // Load blocked jobs
+    fetch("/api/jobs/blocked")
+      .then((r) => r.json())
+      .then((data: { blocked?: { externalId: string }[] }) => {
+        if (data.blocked) {
+          setBlockedJobIds(new Set(data.blocked.map((b) => b.externalId)));
+        }
+      })
+      .catch(() => {});
+  }, [location, remoteOnly, source, broadIt, sort, hideBlocked]);
+
+  // Block or unblock job
+  const handleToggleBlock = async (hit: UnifiedJobHit) => {
+    setBlockingId(hit.id);
+    const isCurrentlyBlocked = blockedJobIds.has(hit.id) || Boolean(hit.isBlocked);
+
+    try {
+      if (isCurrentlyBlocked) {
+        const res = await fetch(
+          `/api/jobs/blocked?externalId=${encodeURIComponent(hit.id)}`,
+          { method: "DELETE" }
+        );
+        if (res.ok) {
+          setBlockedJobIds((prev) => {
+            const next = new Set(prev);
+            next.delete(hit.id);
+            return next;
+          });
+          setHits((prev) =>
+            prev.map((h) => (h.id === hit.id ? { ...h, isBlocked: false } : h))
+          );
+        }
+      } else {
+        const res = await fetch("/api/jobs/blocked", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            externalId: hit.id,
+            title: hit.headline,
+            company: hit.employer.name,
+          }),
+        });
+        if (res.ok) {
+          setBlockedJobIds((prev) => new Set(prev).add(hit.id));
+          // If saved, clear its saved badge
+          setSavedJobIds((prev) => {
+            const next = { ...prev };
+            delete next[hit.id];
+            return next;
+          });
+          onRefreshSavedCount();
+
+          if (hideBlocked) {
+            setHits((prev) => prev.filter((h) => h.id !== hit.id));
+            setTotalHits((prev) => Math.max(0, prev - 1));
+          } else {
+            setHits((prev) =>
+              prev.map((h) => (h.id === hit.id ? { ...h, isBlocked: true } : h))
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle block status:", err);
+    } finally {
+      setBlockingId(null);
+    }
+  };
 
   // Save job and optionally navigate to tailor studio
   const handleSaveJob = async (hit: UnifiedJobHit, openStudio = false) => {
@@ -393,6 +471,23 @@ export function JobSearchView({
               <Globe className="h-3.5 w-3.5 text-blue-500" />
               Distans / Remote
             </label>
+
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300">
+              <input
+                type="checkbox"
+                checked={hideBlocked}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setHideBlocked(val);
+                  handleSearch(undefined, undefined, undefined, undefined, val);
+                }}
+                className="rounded border-neutral-300 text-red-600 focus:ring-red-500"
+              />
+              <Ban className="h-3.5 w-3.5 text-red-500" />
+              <span>
+                Dölj blockerade {blockedJobIds.size > 0 && `(${blockedJobIds.size})`}
+              </span>
+            </label>
           </div>
         </div>
       </div>
@@ -464,6 +559,8 @@ export function JobSearchView({
           {hits.map((hit) => {
             const isSaved = Boolean(savedJobIds[hit.id]);
             const isSaving = savingId === hit.id;
+            const isBlocked = blockedJobIds.has(hit.id) || Boolean(hit.isBlocked);
+            const isBlocking = blockingId === hit.id;
             const municipality =
               hit.workplace_address?.municipality ||
               hit.workplace_address?.city ||
@@ -476,7 +573,11 @@ export function JobSearchView({
             return (
               <div
                 key={hit.id}
-                className="group relative rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
+                className={`group relative rounded-xl border p-5 shadow-sm transition-all ${
+                  isBlocked
+                    ? "border-red-200 bg-red-50/20 opacity-70 hover:opacity-100 dark:border-red-950 dark:bg-red-950/15"
+                    : "border-neutral-200 bg-white hover:border-blue-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
+                }`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -513,6 +614,11 @@ export function JobSearchView({
                           Distans
                         </span>
                       )}
+                      {isBlocked && (
+                        <span className="rounded bg-red-100 px-1.5 py-0.5 font-medium text-red-700 dark:bg-red-950/60 dark:text-red-300">
+                          Blockerad
+                        </span>
+                      )}
                       {hit.application_deadline && (
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-neutral-400" />
@@ -527,9 +633,34 @@ export function JobSearchView({
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {/* Block / Dismiss button */}
+                    <button
+                      onClick={() => handleToggleBlock(hit)}
+                      disabled={isBlocking}
+                      title={
+                        isBlocked
+                          ? "Häv blockering (visa i listan igen)"
+                          : "Blockera / Dölj annons (t.ex. redan sökt eller ej relevant)"
+                      }
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
+                        isBlocked
+                          ? "border-red-300 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-800 dark:bg-red-950/70 dark:text-red-300"
+                          : "border-neutral-200 text-neutral-400 hover:border-red-200 hover:bg-red-50/70 hover:text-red-600 dark:border-neutral-700 dark:text-neutral-500 dark:hover:border-red-900 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                      }`}
+                    >
+                      {isBlocking ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isBlocked ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Ban className="h-4 w-4" />
+                      )}
+                    </button>
+
+                    {/* Save button */}
                     <button
                       onClick={() => handleSaveJob(hit, false)}
-                      disabled={isSaving}
+                      disabled={isSaving || isBlocked}
                       title={isSaved ? "Sparad i din lista" : "Spara annons"}
                       className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
                         isSaved
@@ -546,14 +677,25 @@ export function JobSearchView({
                       )}
                     </button>
 
-                    <button
-                      onClick={() => handleSaveJob(hit, true)}
-                      disabled={isSaving}
-                      className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Optimera CV & Brev
-                    </button>
+                    {isBlocked ? (
+                      <button
+                        onClick={() => handleToggleBlock(hit)}
+                        disabled={isBlocking}
+                        className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-neutral-900 dark:text-red-300"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        Häv blockering
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleSaveJob(hit, true)}
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Optimera CV & Brev
+                      </button>
+                    )}
                   </div>
                 </div>
 
