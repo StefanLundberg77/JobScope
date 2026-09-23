@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { searchJobTech, OCCUPATION_FIELD_DATA_IT } from "@/lib/jobtech";
+import { searchJobTech, OCCUPATION_FIELD_DATA_IT, normalizeJobTechWorkplaceModel } from "@/lib/jobtech";
 import { searchLinkedInJobs } from "@/lib/linkedin";
 import { UnifiedJobHit } from "@/lib/types";
 
@@ -38,6 +38,7 @@ export async function GET(req: Request) {
       const data = await searchJobTech({ query, occupationField, location, remote, limit, offset, sort: jtSort });
       hits = (data.hits || []).map((h) => ({
         ...h,
+        workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, remote),
         source: "jobtech" as const,
       }));
       totalCount = data.total?.value || hits.length;
@@ -56,6 +57,7 @@ export async function GET(req: Request) {
         jobTechResult.status === "fulfilled"
           ? (jobTechResult.value.hits || []).map((h) => ({
               ...h,
+              workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, remote),
               source: "jobtech" as const,
             }))
           : [];
@@ -71,6 +73,12 @@ export async function GET(req: Request) {
       // Combine hits
       hits = [...liHits, ...jtHits];
       totalCount = jtTotal + liTotal;
+    }
+
+    // Filter out strictly on-site jobs if user selected remote filter
+    if (remote) {
+      hits = hits.filter((h) => h.workplace_model !== "onsite");
+      totalCount = hits.length;
     }
 
     // Sort combined results by publication date descending when requested

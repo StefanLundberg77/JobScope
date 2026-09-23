@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { searchJobTech, fetchJobTechAd, OCCUPATION_FIELD_DATA_IT } from "@/lib/jobtech";
+import { searchJobTech, fetchJobTechAd, OCCUPATION_FIELD_DATA_IT, normalizeJobTechWorkplaceModel } from "@/lib/jobtech";
 import { searchLinkedInJobs, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
 import { parseJobAdText } from "@/lib/parser";
@@ -156,7 +156,10 @@ export async function POST(req: Request) {
           title = ad.headline || title;
           company = ad.employer.name || company;
           jobLocation = ad.workplace_address?.municipality || ad.workplace_address?.city || "Sverige";
-          workplaceType = ad.workplace_model === "remote" ? "remote" : ad.workplace_model === "hybrid" ? "hybrid" : "onsite";
+          workplaceType = normalizeJobTechWorkplaceModel(
+            ad.workplace_model,
+            (ad.headline || "") + " " + (ad.description?.text || "")
+          );
           description = ad.description?.text || "";
           url = ad.application_details?.url || ad.webpage_url || url;
           requiredSkills = [

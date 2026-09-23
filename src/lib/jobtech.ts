@@ -34,7 +34,7 @@ export interface JobTechHit {
     city?: string;
     street_address?: string;
   };
-  workplace_model?: string; // remote, hybrid, onsite
+  workplace_model?: string | { concept_id?: string | null; label?: string | null }; // remote, hybrid, onsite or taxonomy object
   publication_date: string;
   application_deadline?: string;
   webpage_url?: string;
@@ -172,3 +172,41 @@ export async function fetchJobTechAd(id: string): Promise<JobTechHit> {
 
   return res.json();
 }
+
+/**
+ * Normalizes workplace model from JobTech (which can be a string or { concept_id, label } object)
+ * into a typed "remote" | "hybrid" | "onsite" value.
+ */
+export function normalizeJobTechWorkplaceModel(
+  rawModel: unknown,
+  headline?: string,
+  isRemoteSearch?: boolean
+): "remote" | "hybrid" | "onsite" {
+  const modelObj =
+    typeof rawModel === "object" && rawModel !== null
+      ? (rawModel as { label?: string | null })
+      : null;
+  const label = typeof rawModel === "string" ? rawModel : modelObj?.label || "";
+  const lowerLabel = label.toLowerCase();
+  const lowerHeadline = (headline || "").toLowerCase();
+
+  if (
+    lowerLabel.includes("distans") ||
+    lowerLabel.includes("remote") ||
+    lowerHeadline.includes("distans") ||
+    lowerHeadline.includes("remote")
+  ) {
+    return "remote";
+  }
+  if (lowerLabel.includes("hybrid") || lowerHeadline.includes("hybrid")) {
+    return "hybrid";
+  }
+  if (lowerLabel.includes("plats") || lowerLabel.includes("onsite")) {
+    return "onsite";
+  }
+  if (isRemoteSearch) {
+    return "remote";
+  }
+  return "onsite";
+}
+

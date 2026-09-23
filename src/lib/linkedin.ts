@@ -90,7 +90,14 @@ export function isLinkedInUrl(url: string): boolean {
 export async function searchLinkedInJobs(
   params: LinkedInSearchParams
 ): Promise<LinkedInSearchResponse> {
-  const query = params.query?.trim() || "IT OR Utvecklare OR Developer";
+  const rawQuery = params.query?.trim() || "IT OR Utvecklare OR Developer";
+  // The LinkedIn guest endpoint ignores f_WT, so append remote/distans keywords
+  // to ensure only actual remote positions are returned.
+  const query = params.remote
+    ? params.query?.trim()
+      ? `${rawQuery} (remote OR distans)`
+      : `(${rawQuery}) (remote OR distans)`
+    : rawQuery;
   const location = mapLocationToLinkedIn(params.location);
   const start = params.offset ?? 0;
   const targetLimit = params.limit ?? 25;
@@ -147,6 +154,36 @@ export async function searchLinkedInJobs(
       const locMatch = card.match(/<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
       const loc = locMatch ? decodeHtml(locMatch[1].replace(/<[^>]+>/g, "")) : "Göteborg";
 
+      const lowerTitle = title.toLowerCase();
+      const lowerLoc = loc.toLowerCase();
+
+      const isExplicitOnsite =
+        lowerTitle.includes("på plats") ||
+        lowerTitle.includes("onsite") ||
+        lowerLoc.includes("på plats");
+      const isExplicitRemote =
+        lowerTitle.includes("remote") ||
+        lowerTitle.includes("distans") ||
+        lowerLoc.includes("remote") ||
+        lowerLoc.includes("distans");
+      const isExplicitHybrid =
+        lowerTitle.includes("hybrid") ||
+        lowerLoc.includes("hybrid");
+
+      // Skip explicitly on-site jobs if user requested remote positions
+      if (params.remote && isExplicitOnsite) {
+        continue;
+      }
+
+      let workplaceModel: "remote" | "hybrid" | "onsite" = "onsite";
+      if (isExplicitRemote) {
+        workplaceModel = "remote";
+      } else if (isExplicitHybrid) {
+        workplaceModel = "hybrid";
+      } else if (params.remote) {
+        workplaceModel = "remote";
+      }
+
       // Extract link
       const linkMatch = card.match(/<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"/i);
       const rawLink = linkMatch ? linkMatch[1].split("?")[0] : "";
@@ -171,7 +208,7 @@ export async function searchLinkedInJobs(
           municipality: loc,
           city: loc,
         },
-        workplace_model: params.remote ? "remote" : "onsite",
+        workplace_model: workplaceModel,
         publication_date: pubDate,
         webpage_url: rawLink,
         source: "linkedin",

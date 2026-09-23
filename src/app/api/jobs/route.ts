@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { fetchJobTechAd } from "@/lib/jobtech";
+import { fetchJobTechAd, normalizeJobTechWorkplaceModel } from "@/lib/jobtech";
 import { fetchAndParseJobUrl, parseJobAdText } from "@/lib/parser";
 import { isLinkedInUrl, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
@@ -117,13 +117,10 @@ export async function POST(req: Request) {
         ad.workplace_address?.city ||
         "Sverige";
 
-      if (ad.workplace_model === "remote") {
-        jobData.workplaceType = "remote";
-      } else if (ad.workplace_model === "hybrid") {
-        jobData.workplaceType = "hybrid";
-      } else {
-        jobData.workplaceType = "onsite";
-      }
+      jobData.workplaceType = normalizeJobTechWorkplaceModel(
+        ad.workplace_model,
+        (ad.headline || "") + " " + (ad.description?.text || "")
+      );
 
       jobData.url =
         ad.application_details?.url || ad.webpage_url || ad.employer.url || null;
