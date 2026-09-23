@@ -19,6 +19,7 @@ export async function GET() {
         data: {
           id: "default",
           geminiApiKey: process.env.GEMINI_API_KEY || "",
+          aiModel: "gemini-2.5-flash",
           targetRole: "Systemutvecklare & AI-utvecklare",
           targetLocations: "Göteborg",
           workPreference: "any",
@@ -54,6 +55,7 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const {
       geminiApiKey,
+      aiModel,
       targetRole,
       targetLocations,
       workPreference,
@@ -66,6 +68,7 @@ export async function PUT(req: Request) {
       where: { id: "default" },
       update: {
         ...(geminiApiKey !== undefined && { geminiApiKey: geminiApiKey.trim() }),
+        ...(aiModel !== undefined && { aiModel: aiModel.trim() }),
         ...(targetRole !== undefined && { targetRole }),
         ...(targetLocations !== undefined && { targetLocations }),
         ...(workPreference !== undefined && { workPreference }),
@@ -76,6 +79,7 @@ export async function PUT(req: Request) {
       create: {
         id: "default",
         geminiApiKey: geminiApiKey?.trim() || "",
+        aiModel: aiModel?.trim() || "gemini-2.5-flash",
         targetRole: targetRole || "Systemutvecklare & AI-utvecklare",
         targetLocations: targetLocations || "Göteborg",
         workPreference: workPreference || "any",

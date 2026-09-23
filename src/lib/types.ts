@@ -118,6 +118,7 @@ export interface TailoredCvData {
  */
 export interface TailorOptions {
   language?: "sv" | "en" | "auto";
+  model?: string;
 }
 
 /**

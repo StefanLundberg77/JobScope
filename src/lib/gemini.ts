@@ -42,6 +42,30 @@ export async function getGeminiClient(): Promise<GoogleGenerativeAI> {
 }
 
 /**
+ * Retrieves the configured AI model for Gemini, prioritizing user settings in SQLite
+ * before falling back to the GEMINI_MODEL environment variable or "gemini-2.5-flash".
+ *
+ * @param preferredModel Optional model override for the invocation
+ * @returns The active Gemini model name
+ */
+export async function getActiveAiModel(preferredModel?: string): Promise<string> {
+  if (preferredModel?.trim()) {
+    return preferredModel.trim();
+  }
+
+  try {
+    const settings = await prisma.userSettings.findFirst();
+    if (settings?.aiModel?.trim()) {
+      return settings.aiModel.trim();
+    }
+  } catch (error) {
+    console.error("Failed to read UserSettings for AI model:", error);
+  }
+
+  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+}
+
+/**
  * Input payload for profile parsing, supporting raw text or a base64-encoded PDF.
  */
 export interface ParseProfileInput {
@@ -57,11 +81,13 @@ export interface ParseProfileInput {
  * @returns Structured partial profile data ready for database persistence
  */
 export async function parseProfileWithAI(
-  input: ParseProfileInput
+  input: ParseProfileInput,
+  options?: { model?: string }
 ): Promise<Partial<MasterProfileData>> {
   const genAI = await getGeminiClient();
+  const selectedModel = await getActiveAiModel(options?.model);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: selectedModel,
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.1,
@@ -197,11 +223,13 @@ export async function analyzeJobMatchWithAI(
     requiredSkills?: string[];
     preferredSkills?: string[];
   },
-  profile: MasterProfileData
+  profile: MasterProfileData,
+  options?: { model?: string }
 ): Promise<MatchAnalysis> {
   const genAI = await getGeminiClient();
+  const selectedModel = await getActiveAiModel(options?.model);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: selectedModel,
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.2,
@@ -322,11 +350,13 @@ export async function tailorApplicationWithAI(
   profile: MasterProfileData,
   options?: {
     language?: "sv" | "en" | "auto";
+    model?: string;
   }
 ): Promise<TailoredCvData> {
   const genAI = await getGeminiClient();
+  const selectedModel = await getActiveAiModel(options?.model);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: selectedModel,
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.3,

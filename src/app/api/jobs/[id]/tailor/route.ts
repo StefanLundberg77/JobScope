@@ -21,7 +21,7 @@ export async function POST(
 ) {
   try {
     const { id } = await ctx.params;
-    let body: { language?: "sv" | "en" | "auto" } = {};
+    let body: { language?: "sv" | "en" | "auto"; model?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -68,7 +68,7 @@ export async function POST(
       projects: JSON.parse(profileRecord.projects || "[]"),
     };
 
-    // Run AI tailoring with language option
+    // Run AI tailoring with language option and optional model override
     const tailored = await tailorApplicationWithAI(
       {
         title: job.title,
@@ -79,6 +79,7 @@ export async function POST(
       profile,
       {
         language: body.language || "auto",
+        model: body.model || undefined,
       }
     );
 
