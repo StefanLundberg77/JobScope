@@ -62,7 +62,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { externalId, url, rawText, manualData } = body;
+    const { externalId, url, rawText, manualData, status, dismissReason } = body;
 
     let jobData = {
       externalId: externalId || null,
@@ -180,6 +180,15 @@ export async function POST(req: Request) {
       job = await prisma.jobListing.findUnique({
         where: { externalId: jobData.externalId },
       });
+      if (job && (status || dismissReason !== undefined)) {
+        job = await prisma.jobListing.update({
+          where: { id: job.id },
+          data: {
+            ...(status && { status }),
+            ...(dismissReason !== undefined && { dismissReason }),
+          },
+        });
+      }
     }
 
     if (!job) {
@@ -197,7 +206,8 @@ export async function POST(req: Request) {
           description: jobData.description,
           requiredSkills: JSON.stringify(jobData.requiredSkills),
           preferredSkills: JSON.stringify(jobData.preferredSkills),
-          status: "saved",
+          status: status || "saved",
+          dismissReason: dismissReason || null,
         },
       });
     }

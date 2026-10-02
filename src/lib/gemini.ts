@@ -307,11 +307,11 @@ VIKTIG PROFILKONTEXT & SÖKINSTÄLLNING:
   * IT-support, servicedesk, applikationssupport och teknisk kundsupport
   * Testning, kvalitetssäkring (QA) och mjukvaruverifiering
   * DevOps, moln (Cloud), infrastruktur och nätverk
-  * Datateknik, dataanalys och AI/automation
+  * Datateknik, datamodellering, data engineering, BI och AI/automation
   * IT-konsult och teknisk projektkoordinering
 - BEDÖMNINGSPRINCIP FÖR BREDA IT-ROLLER:
   * Sätt INTE ett lågt matchningsscore enbart för att rollens titel inte heter exakt "Systemutvecklare" eller "AI-utvecklare".
-  * Om rollen gäller t.ex. IT-support, applikationsdrift, testare eller teknisk samordnare: värdera kandidatens systemförståelse, felsökningsförmåga, programmeringslogik, SQL-vana, Linux/Docker-kunskap samt fleråriga stresstålighet, teamledarvana och problemlösningsförmåga som mycket starka och direkt överförbara meriter.
+  * Om rollen gäller t.ex. Data Engineer, datamodellering, IT-support, applikationsdrift, testare eller teknisk samordnare: värdera kandidatens systemförståelse, databas- och SQL-vana, moderna verktyg (dbt, DuckDB, dltHub, Dagster, Snowflake, Pandas, relationsdatabaser), programmeringslogik, Linux/Docker-kunskap samt fleråriga stresstålighet, teamledarvana och problemlösningsförmåga som mycket starka och direkt överförbara meriter.
   * Beräkna en rättvis och realistisk matchningsprocent (0-100) baserat på kärnkrav och hur väl kandidatens samlade tekniska grund och inlärningsförmåga passar rollen.
 
 JOBBANNONS:
@@ -469,8 +469,10 @@ International tech hiring leads and engineering managers value confidence, clari
 3. CV PROFILE SUMMARY (tailoredSummary) GUIDELINES & ROLE-ADAPTIVE BENCHMARK:
    - Length: Exactly 2 high-impact, factual sentences. High technical density, verb-first style, and zero HR fluff.
    - DYNAMIC ROLE ANCHORING (Adapt the primary focus and identity to what the target posting seeks):
-     * If applying for GenAI / AI / Python / Data roles: Lead with applied GenAI/AI development (RAG architectures, agentic workflows, Python, multimodal retrieval) and solid systems engineering. Reference real implementations (Orbislinks, Thesis on Multimodal RAG on Azure, JobScope), reinforced by shipping commercial software to Steam (No Final Run) and operational team leadership.
+     * If applying for GenAI / AI / Python roles: Lead with applied GenAI/AI development (RAG architectures, agentic workflows, Python, multimodal retrieval) and solid systems engineering. Reference real implementations (Orbislinks, Thesis on Multimodal RAG on Azure, JobScope), reinforced by shipping commercial software to Steam (No Final Run) and operational team leadership.
        Example benchmark: "GenAI and software developer focused on applied AI pipelines (RAG, agentic workflows) and robust system architecture in Python and C#/.NET. Built multimodal retrieval benchmarks on Azure, shipped commercial software to Steam (No Final Run), and brings several years of operational team leadership."
+     * If applying for Data Engineer / Data Modeling / BI roles: Lead with data engineering pipelines, transformation workflows (dbt, DuckDB, SQL, Pandas), and robust system architecture in Python and C#/.NET. Reference data modeling and pipeline tooling (dbt, Dagster, Snowflake, relational databases), supported by shipping commercial software to Steam (No Final Run) and operational team leadership.
+       Example benchmark: "Data and software developer focused on data modeling, transformation pipelines (dbt, DuckDB, SQL, Pandas), and robust backend systems in Python and C#/.NET. Built end-to-end data workflows, shipped commercial software to Steam (No Final Run), and brings several years of operational team leadership."
      * If applying for C# / .NET / Backend roles: Lead with C#/.NET backend architecture, multithreading, and performance optimization.
        Example benchmark: "C#/.NET developer focused on backend architecture, performance optimization, and multithreaded systems. Shipped commercial software to Steam (No Final Run), with an earlier background in operational team leadership and fast-paced prioritization."
      * If applying for Fullstack / Broad IT roles: Balance modern fullstack delivery (Python/C#, React/Next.js, SQL/Docker) and operational reliability.
@@ -610,8 +612,10 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
 3. RIKTLINJER FÖR CV-PROFILTEXT (tailoredSummary) & ROLLANPASSAD GULDSTANDARD:
    - Längd: Exakt 2 kärnfulla, sakliga meningar. Hög teknisk densitet, aktiva verb och absolut noll HR-floskler.
    - DYNAMISK POSITIONERING (Anpassa primär titel och fokus efter annonsens inriktning):
-     * Vid GenAI / AI / Data-roller: Led med tillämpad AI (RAG-arkitektur, agentiska arbetsflöden, Python, multimodala modeller) och solid systemutveckling. Lyft skarpa system (Orbislinks RAG-pipeline, examensarbetet med multimodal RAG på Azure, JobScope) och låt C#-grunden och Steam-releasen (No Final Run) samt operativt teamledarskap visa bredd och ingenjörsdisciplin.
+     * Vid GenAI / AI / Python-roller: Led med tillämpad AI (RAG-arkitektur, agentiska arbetsflöden, Python, multimodala modeller) och solid systemutveckling. Lyft skarpa system (Orbislinks RAG-pipeline, examensarbetet med multimodal RAG på Azure, JobScope) och låt C#-grunden och Steam-releasen (No Final Run) samt operativt teamledarskap visa bredd och ingenjörsdisciplin.
        Exempel på förebild: "AI- och systemutvecklare med fokus på tillämpad AI (RAG-pipelines, agentiska flöden) och robust systemarkitektur i Python och C#/.NET. Har byggt multimodala RAG-system på Azure, släppt kommersiell mjukvara på Steam (No Final Run) och har flerårig erfarenhet av operativt teamledarskap under högt tempo."
+     * Vid Data Engineer / Datamodellering / BI-roller: Led med datateknik, datamodellering (dbt, DuckDB, SQL, Snowflake, Dagster, Pandas) och robust systemarkitektur i Python och C#/.NET. Lyft praktisk erfarenhet av datatransformation och databasoptimering, kompletterat med kommersiell mjukvarurelease på Steam (No Final Run) och flerårig erfarenhet av operativt teamledarskap.
+       Exempel på förebild: "Data- och systemutvecklare med fokus på datamodellering, transformationsflöden (dbt, DuckDB, SQL, Pandas) och robust backendutveckling i Python och C#/.NET. Har byggt ändamålsenliga datapipelines, släppt kommersiell mjukvara på Steam (No Final Run) och har flerårig erfarenhet av operativt teamledarskap under högt tempo."
      * Vid C#/.NET / Backend-roller: Led med backendarkitektur, flertrådning och prestandaoptimering.
        Exempel på förebild: "C#/.NET-utvecklare med fokus på backendarkitektur, flertrådning och prestandaoptimering. Har byggt och släppt kommersiell mjukvara på Steam (No Final Run), med en tidigare bakgrund inom operativt teamledarskap och snabba prioriteringar i högt tempo."
      * Vid Fullstack / Breda IT-roller: Balansera modern webb/backend (React/Next.js, Python, C#, SQL, Docker) och operativ driftsäkerhet.

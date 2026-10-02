@@ -34,7 +34,16 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { externalId, title, company } = body;
+    const {
+      externalId,
+      title,
+      company,
+      reason,
+      description,
+      url,
+      location,
+      source,
+    } = body;
 
     if (!externalId) {
       return NextResponse.json(
@@ -48,21 +57,47 @@ export async function POST(req: Request) {
       update: {
         title: title || undefined,
         company: company || undefined,
+        reason: reason !== undefined ? reason : undefined,
       },
       create: {
         externalId,
         title: title || null,
         company: company || null,
+        reason: reason || null,
       },
     });
 
-    // If job was previously saved in JobListing, remove it so it doesn't clutter Kanban
+    // Save or update JobListing with status 'dismissed' so it appears in Kanban 'Inaktuella'
     try {
-      await prisma.jobListing.deleteMany({
+      const existing = await prisma.jobListing.findUnique({
         where: { externalId },
       });
+
+      if (existing) {
+        await prisma.jobListing.update({
+          where: { externalId },
+          data: {
+            status: "dismissed",
+            dismissReason: reason !== undefined ? reason : existing.dismissReason,
+          },
+        });
+      } else {
+        await prisma.jobListing.create({
+          data: {
+            externalId,
+            title: title || "Jobbannons",
+            company: company || "Företag",
+            location: location || "Göteborg",
+            url: url || null,
+            source: source || (externalId.startsWith("linkedin-") ? "linkedin" : "jobtech"),
+            description: description || "",
+            status: "dismissed",
+            dismissReason: reason || null,
+          },
+        });
+      }
     } catch (e) {
-      console.warn("Could not remove saved JobListing for blocked job:", e);
+      console.warn("Could not update/create JobListing for dismissed job:", e);
     }
 
     return NextResponse.json({ blocked });
@@ -94,6 +129,16 @@ export async function DELETE(req: Request) {
     await prisma.blockedJob.deleteMany({
       where: { externalId },
     });
+
+    // If job was marked as dismissed in JobListing, restore it to 'saved'
+    try {
+      await prisma.jobListing.updateMany({
+        where: { externalId, status: "dismissed" },
+        data: { status: "saved" },
+      });
+    } catch (e) {
+      console.warn("Could not restore JobListing status on unblock:", e);
+    }
 
     return NextResponse.json({ success: true, unblocked: externalId });
   } catch (error) {

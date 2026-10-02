@@ -394,6 +394,7 @@ export function TailorStudio({
               <option value="interview">Intervju</option>
               <option value="offer">Erbjudande</option>
               <option value="rejected">Avslag</option>
+              <option value="dismissed">Inaktuell</option>
             </select>
           </div>
 

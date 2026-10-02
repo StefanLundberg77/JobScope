@@ -66,12 +66,13 @@ export async function PATCH(
   try {
     const { id } = await ctx.params;
     const body = await req.json();
-    const { status, notes } = body;
+    const { status, notes, dismissReason } = body;
 
     const updated = await prisma.jobListing.update({
       where: { id },
       data: {
         ...(status && { status }),
+        ...(dismissReason !== undefined && { dismissReason }),
       },
       include: {
         applications: {
@@ -80,12 +81,46 @@ export async function PATCH(
       },
     });
 
-    // If notes are supplied, update the latest application or create note
-    if (notes !== undefined && updated.applications.length > 0) {
-      await prisma.tailoredApplication.update({
-        where: { id: updated.applications[0].id },
-        data: { notes },
+    // Synchronize with BlockedJob for automatic job search filtering
+    if (status === "dismissed" && updated.externalId) {
+      const activeReason =
+        dismissReason !== undefined ? dismissReason : updated.dismissReason;
+      await prisma.blockedJob.upsert({
+        where: { externalId: updated.externalId },
+        update: {
+          title: updated.title,
+          company: updated.company,
+          reason: activeReason,
+        },
+        create: {
+          externalId: updated.externalId,
+          title: updated.title,
+          company: updated.company,
+          reason: activeReason,
+        },
       });
+    } else if (status && status !== "dismissed" && updated.externalId) {
+      // If moving back to an active stage, unblock the job automatically
+      await prisma.blockedJob.deleteMany({
+        where: { externalId: updated.externalId },
+      });
+    }
+
+    // If notes are supplied, update the latest application or create note
+    if (notes !== undefined) {
+      if (updated.applications.length > 0) {
+        await prisma.tailoredApplication.update({
+          where: { id: updated.applications[0].id },
+          data: { notes },
+        });
+      } else {
+        await prisma.tailoredApplication.create({
+          data: {
+            jobId: id,
+            notes,
+          },
+        });
+      }
     }
 
     return NextResponse.json(updated);

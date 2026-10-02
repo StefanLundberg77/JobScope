@@ -130,7 +130,8 @@ export type ApplicationStatus =
   | "applied"
   | "interview"
   | "offer"
-  | "rejected";
+  | "rejected"
+  | "dismissed";
 
 /**
  * Persisted job listing entity combining raw metadata, requirements, and tailoring history.
@@ -152,6 +153,9 @@ export interface JobItem {
   status: ApplicationStatus;
   matchScore?: number | null;
   matchAnalysis?: MatchAnalysis | null;
+  dismissReason?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   applications?: {
     id: string;
     language?: "sv" | "en" | string;
@@ -203,6 +207,8 @@ export interface UnifiedJobHit {
     skills?: { label: string }[];
   };
   isBlocked?: boolean;
+  dismissReason?: string | null;
+  savedStatus?: ApplicationStatus;
 }
 
 /**
@@ -213,6 +219,7 @@ export interface BlockedJobItem {
   externalId: string;
   title?: string | null;
   company?: string | null;
+  reason?: string | null;
   createdAt: string;
 }
 

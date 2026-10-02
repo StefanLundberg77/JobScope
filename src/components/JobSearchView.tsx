@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
   MapPin,
@@ -18,8 +18,49 @@ import {
   ArrowUpDown,
   Ban,
   EyeOff,
+  RotateCcw,
+  Tag,
+  X,
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
+
+/**
+ * Key used to preserve user filter selections and search hits in sessionStorage.
+ */
+const SEARCH_SESSION_KEY = "jobscope_search_session_state";
+
+interface SearchSessionCache {
+  query: string;
+  broadIt: boolean;
+  location: "goteborg" | "commute" | "region_14" | "all";
+  remoteOnly: boolean;
+  source: "all" | "linkedin" | "jobtech";
+  sort: "relevance" | "date";
+  hideBlocked: boolean;
+  hits: UnifiedJobHit[];
+  totalHits: number;
+}
+
+function getStoredSearchSession(): SearchSessionCache | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(SEARCH_SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Common preset rejection reasons.
+ */
+const REASON_PRESETS = [
+  "Tror inte jag har en chans",
+  "Kräver för hög senioritet / saknar krav",
+  "Fel roll / ej intressant teknikstack",
+  "Otydlig profil eller dåliga villkor",
+];
 
 /**
  * Props for the JobSearchView component.
@@ -36,6 +77,7 @@ const QUICK_IT_FILTERS = [
   { label: "Alla IT-jobb", query: "", broad: true },
   { label: "GenAI & RAG", query: "GenAI AI RAG", broad: true },
   { label: "Python & AI", query: "Python AI", broad: true },
+  { label: "Data Engineering", query: '"Data Engineer" Datamodellering', broad: true },
   { label: "C# / .NET", query: "C# .NET", broad: true },
   { label: "Fullstack", query: "Fullstack", broad: true },
   { label: "Support & Drift", query: "Support Drift", broad: true },
@@ -51,6 +93,7 @@ export function JobSearchView({
   onOpenTailorStudio,
   onRefreshSavedCount,
 }: JobSearchViewProps) {
+  // Deterministic initial state to match SSR and prevent hydration mismatches
   const [query, setQuery] = useState("");
   const [broadIt, setBroadIt] = useState(true);
   const [location, setLocation] = useState<
@@ -70,9 +113,22 @@ export function JobSearchView({
   const [hideBlocked, setHideBlocked] = useState(true);
   const [blockingId, setBlockingId] = useState<string | null>(null);
 
+  // Dismiss modal state
+  const [dismissModalHit, setDismissModalHit] = useState<UnifiedJobHit | null>(
+    null
+  );
+  const [selectedDismissPreset, setSelectedDismissPreset] = useState(
+    REASON_PRESETS[0]
+  );
+  const [customDismissReason, setCustomDismissReason] = useState("");
+
   // Daily scan state
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+
+  // Tracks client session restoration to prevent SSR hydration mismatches
+  const [isSessionRestored, setIsSessionRestored] = useState(false);
+  const hasLoadedInitialFilter = useRef(false);
 
   // Search function
   const handleSearch = async (
@@ -80,7 +136,9 @@ export function JobSearchView({
     overrideSource?: "all" | "linkedin" | "jobtech",
     overrideBroadIt?: boolean,
     overrideSort?: "relevance" | "date",
-    overrideHideBlocked?: boolean
+    overrideHideBlocked?: boolean,
+    overrideLocation?: "goteborg" | "commute" | "region_14" | "all",
+    overrideRemoteOnly?: boolean
   ) => {
     setLoading(true);
     try {
@@ -89,10 +147,12 @@ export function JobSearchView({
       const b = overrideBroadIt !== undefined ? overrideBroadIt : broadIt;
       const so = overrideSort !== undefined ? overrideSort : sort;
       const hb = overrideHideBlocked !== undefined ? overrideHideBlocked : hideBlocked;
+      const loc = overrideLocation !== undefined ? overrideLocation : location;
+      const rem = overrideRemoteOnly !== undefined ? overrideRemoteOnly : remoteOnly;
       const params = new URLSearchParams({
         q,
-        location,
-        remote: remoteOnly ? "true" : "false",
+        location: loc,
+        remote: rem ? "true" : "false",
         source: s,
         broadIt: b ? "true" : "false",
         sort: so,
@@ -113,22 +173,20 @@ export function JobSearchView({
     }
   };
 
-  // Initial load
+  // Restore session from sessionStorage on client mount (safe from SSR hydration mismatch)
   useEffect(() => {
-    handleSearch();
-    // Also load already saved jobs to show bookmark state
+    // Background load of saved and blocked jobs
     fetch("/api/jobs")
       .then((r) => r.json())
       .then((jobs: JobItem[]) => {
         const map: Record<string, string> = {};
         jobs.forEach((j) => {
-          if (j.externalId) map[j.externalId] = j.id;
+          if (j.externalId && j.status !== "dismissed") map[j.externalId] = j.id;
         });
         setSavedJobIds(map);
       })
       .catch(() => {});
 
-    // Load blocked jobs
     fetch("/api/jobs/blocked")
       .then((r) => r.json())
       .then((data: { blocked?: { externalId: string }[] }) => {
@@ -137,63 +195,170 @@ export function JobSearchView({
         }
       })
       .catch(() => {});
+
+    const cached = getStoredSearchSession();
+    if (cached) {
+      if (cached.query !== undefined) setQuery(cached.query);
+      if (cached.broadIt !== undefined) setBroadIt(cached.broadIt);
+      if (cached.location !== undefined) setLocation(cached.location);
+      if (cached.remoteOnly !== undefined) setRemoteOnly(cached.remoteOnly);
+      if (cached.source !== undefined) setSource(cached.source);
+      if (cached.sort !== undefined) setSort(cached.sort);
+      if (cached.hideBlocked !== undefined) setHideBlocked(cached.hideBlocked);
+      if (cached.hits && cached.hits.length > 0) {
+        setHits(cached.hits);
+        setTotalHits(cached.totalHits || 0);
+      } else {
+        handleSearch(
+          cached.query,
+          cached.source,
+          cached.broadIt,
+          cached.sort,
+          cached.hideBlocked,
+          cached.location,
+          cached.remoteOnly
+        );
+      }
+    } else {
+      handleSearch();
+    }
+    setIsSessionRestored(true);
+  }, []);
+
+  // Filter change trigger (runs only after initial session restore)
+  useEffect(() => {
+    if (!isSessionRestored) return;
+    if (!hasLoadedInitialFilter.current) {
+      hasLoadedInitialFilter.current = true;
+      return;
+    }
+    handleSearch();
   }, [location, remoteOnly, source, broadIt, sort, hideBlocked]);
 
-  // Block or unblock job
-  const handleToggleBlock = async (hit: UnifiedJobHit) => {
+  // Sync session state to sessionStorage once restored
+  useEffect(() => {
+    if (!isSessionRestored || typeof window === "undefined") return;
+    try {
+      const sessionData: SearchSessionCache = {
+        query,
+        broadIt,
+        location,
+        remoteOnly,
+        source,
+        sort,
+        hideBlocked,
+        hits,
+        totalHits,
+      };
+      sessionStorage.setItem(SEARCH_SESSION_KEY, JSON.stringify(sessionData));
+    } catch {
+      // Ignore quota errors
+    }
+  }, [isSessionRestored, query, broadIt, location, remoteOnly, source, sort, hideBlocked, hits, totalHits]);
+
+  // Open dismiss modal
+  const handleOpenDismissModal = (hit: UnifiedJobHit) => {
+    setDismissModalHit(hit);
+    setSelectedDismissPreset(REASON_PRESETS[0]);
+    setCustomDismissReason("");
+  };
+
+  // Confirm dismissal
+  const handleConfirmDismiss = async () => {
+    if (!dismissModalHit) return;
+    const finalReason = customDismissReason.trim() || selectedDismissPreset || null;
+    await handleDismissJob(dismissModalHit, finalReason);
+  };
+
+  // Dismiss / block job
+  const handleDismissJob = async (hit: UnifiedJobHit, reason: string | null) => {
     setBlockingId(hit.id);
-    const isCurrentlyBlocked = blockedJobIds.has(hit.id) || Boolean(hit.isBlocked);
+    const municipality =
+      hit.workplace_address?.municipality ||
+      hit.workplace_address?.city ||
+      "Sverige";
 
     try {
-      if (isCurrentlyBlocked) {
-        const res = await fetch(
-          `/api/jobs/blocked?externalId=${encodeURIComponent(hit.id)}`,
-          { method: "DELETE" }
-        );
-        if (res.ok) {
-          setBlockedJobIds((prev) => {
-            const next = new Set(prev);
-            next.delete(hit.id);
-            return next;
-          });
-          setHits((prev) =>
-            prev.map((h) => (h.id === hit.id ? { ...h, isBlocked: false } : h))
-          );
-        }
-      } else {
-        const res = await fetch("/api/jobs/blocked", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            externalId: hit.id,
-            title: hit.headline,
-            company: hit.employer.name,
-          }),
-        });
-        if (res.ok) {
-          setBlockedJobIds((prev) => new Set(prev).add(hit.id));
-          // If saved, clear its saved badge
-          setSavedJobIds((prev) => {
-            const next = { ...prev };
-            delete next[hit.id];
-            return next;
-          });
-          onRefreshSavedCount();
+      const res = await fetch("/api/jobs/blocked", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          externalId: hit.id,
+          title: hit.headline,
+          company: hit.employer.name,
+          location: municipality,
+          url: hit.application_details?.url || hit.webpage_url,
+          source: hit.source,
+          description: hit.description?.text,
+          reason,
+        }),
+      });
 
-          if (hideBlocked) {
-            setHits((prev) => prev.filter((h) => h.id !== hit.id));
-            setTotalHits((prev) => Math.max(0, prev - 1));
-          } else {
-            setHits((prev) =>
-              prev.map((h) => (h.id === hit.id ? { ...h, isBlocked: true } : h))
-            );
-          }
+      if (res.ok) {
+        setBlockedJobIds((prev) => new Set(prev).add(hit.id));
+        setSavedJobIds((prev) => {
+          const next = { ...prev };
+          delete next[hit.id];
+          return next;
+        });
+        onRefreshSavedCount();
+
+        if (hideBlocked) {
+          setHits((prev) => prev.filter((h) => h.id !== hit.id));
+          setTotalHits((prev) => Math.max(0, prev - 1));
+        } else {
+          setHits((prev) =>
+            prev.map((h) =>
+              h.id === hit.id
+                ? { ...h, isBlocked: true, dismissReason: reason }
+                : h
+            )
+          );
         }
       }
     } catch (err) {
-      console.error("Failed to toggle block status:", err);
+      console.error("Failed to dismiss job:", err);
     } finally {
       setBlockingId(null);
+      setDismissModalHit(null);
+    }
+  };
+
+  // Unblock job
+  const handleUnblockJob = async (hit: UnifiedJobHit) => {
+    setBlockingId(hit.id);
+    try {
+      const res = await fetch(
+        `/api/jobs/blocked?externalId=${encodeURIComponent(hit.id)}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        setBlockedJobIds((prev) => {
+          const next = new Set(prev);
+          next.delete(hit.id);
+          return next;
+        });
+        setHits((prev) =>
+          prev.map((h) =>
+            h.id === hit.id ? { ...h, isBlocked: false, dismissReason: null } : h
+          )
+        );
+        onRefreshSavedCount();
+      }
+    } catch (err) {
+      console.error("Failed to unblock job:", err);
+    } finally {
+      setBlockingId(null);
+    }
+  };
+
+  // Block or unblock job toggle
+  const handleToggleBlock = async (hit: UnifiedJobHit) => {
+    const isCurrentlyBlocked = blockedJobIds.has(hit.id) || Boolean(hit.isBlocked);
+    if (isCurrentlyBlocked) {
+      await handleUnblockJob(hit);
+    } else {
+      handleOpenDismissModal(hit);
     }
   };
 
@@ -461,7 +626,10 @@ export function JobSearchView({
               <span>Bred Data/IT-sökning</span>
             </label>
 
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300">
+            <label
+              className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300"
+              title="Visar vanliga jobb på vald ort samt distansjobb från hela landet"
+            >
               <input
                 type="checkbox"
                 checked={remoteOnly}
@@ -469,7 +637,7 @@ export function JobSearchView({
                 className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
               />
               <Globe className="h-3.5 w-3.5 text-blue-500" />
-              Distans / Remote
+              Inkludera distans
             </label>
 
             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300">
@@ -575,7 +743,9 @@ export function JobSearchView({
                 key={hit.id}
                 className={`group relative rounded-xl border p-5 shadow-sm transition-all ${
                   isBlocked
-                    ? "border-red-200 bg-red-50/20 opacity-70 hover:opacity-100 dark:border-red-950 dark:bg-red-950/15"
+                    ? "border-slate-300 bg-slate-50/50 opacity-75 hover:opacity-100 dark:border-slate-800 dark:bg-slate-900/40"
+                    : isSaved
+                    ? "border-emerald-200 bg-emerald-50/20 hover:border-emerald-300 hover:shadow-md dark:border-emerald-900/40 dark:bg-emerald-950/10"
                     : "border-neutral-200 bg-white hover:border-blue-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
                 }`}
               >
@@ -614,9 +784,24 @@ export function JobSearchView({
                           Distans
                         </span>
                       )}
-                      {isBlocked && (
-                        <span className="rounded bg-red-100 px-1.5 py-0.5 font-medium text-red-700 dark:bg-red-950/60 dark:text-red-300">
-                          Blockerad
+                      {hit.workplace_model === "hybrid" && (
+                        <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-medium text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
+                          Hybrid
+                        </span>
+                      )}
+                      {isBlocked ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-200 px-2 py-0.5 font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                          <Tag className="h-3 w-3 text-slate-500" />
+                          Inaktuell{hit.dismissReason ? `: ${hit.dismissReason}` : ""}
+                        </span>
+                      ) : isSaved ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 font-medium text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                          <Check className="h-3 w-3" />
+                          Sparad i Kanban
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded bg-blue-50 px-2 py-0.5 font-medium text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+                          Ny annons
                         </span>
                       )}
                       {hit.application_deadline && (
@@ -634,67 +819,64 @@ export function JobSearchView({
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     {/* Block / Dismiss button */}
-                    <button
-                      onClick={() => handleToggleBlock(hit)}
-                      disabled={isBlocking}
-                      title={
-                        isBlocked
-                          ? "Häv blockering (visa i listan igen)"
-                          : "Blockera / Dölj annons (t.ex. redan sökt eller ej relevant)"
-                      }
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
-                        isBlocked
-                          ? "border-red-300 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-800 dark:bg-red-950/70 dark:text-red-300"
-                          : "border-neutral-200 text-neutral-400 hover:border-red-200 hover:bg-red-50/70 hover:text-red-600 dark:border-neutral-700 dark:text-neutral-500 dark:hover:border-red-900 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                      }`}
-                    >
-                      {isBlocking ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : isBlocked ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Ban className="h-4 w-4" />
-                      )}
-                    </button>
-
-                    {/* Save button */}
-                    <button
-                      onClick={() => handleSaveJob(hit, false)}
-                      disabled={isSaving || isBlocked}
-                      title={isSaved ? "Sparad i din lista" : "Spara annons"}
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
-                        isSaved
-                          ? "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
-                          : "border-neutral-200 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-                      }`}
-                    >
-                      {isSaving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : isSaved ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Bookmark className="h-4 w-4" />
-                      )}
-                    </button>
-
                     {isBlocked ? (
                       <button
-                        onClick={() => handleToggleBlock(hit)}
+                        onClick={() => handleUnblockJob(hit)}
                         disabled={isBlocking}
-                        className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-neutral-900 dark:text-red-300"
+                        title="Häv blockering och återaktivera till sparade"
+                        className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-neutral-900 dark:text-slate-300"
                       >
-                        <Check className="h-3.5 w-3.5" />
-                        Häv blockering
+                        {isBlocking ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3.5 w-3.5 text-emerald-600" />
+                        )}
+                        Återaktivera
                       </button>
                     ) : (
-                      <button
-                        onClick={() => handleSaveJob(hit, true)}
-                        disabled={isSaving}
-                        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Optimera CV & Brev
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleOpenDismissModal(hit)}
+                          disabled={isBlocking}
+                          title="Markera som inaktuell (vill inte söka)"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-neutral-400 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 dark:border-neutral-700 dark:text-neutral-500 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300 transition-all"
+                        >
+                          {isBlocking ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
+                          )}
+                        </button>
+
+                        {/* Save button */}
+                        <button
+                          onClick={() => handleSaveJob(hit, false)}
+                          disabled={isSaving}
+                          title={isSaved ? "Sparad i din lista" : "Spara annons"}
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
+                            isSaved
+                              ? "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
+                              : "border-neutral-200 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                          }`}
+                        >
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isSaved ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Bookmark className="h-4 w-4" />
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleSaveJob(hit, true)}
+                          disabled={isSaving}
+                          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Optimera CV & Brev
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -744,6 +926,90 @@ export function JobSearchView({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Dismiss Reason Modal Dialog */}
+      {dismissModalHit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
+              <div>
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  Markera som inaktuell
+                </h3>
+                <p className="text-xs text-neutral-500 truncate max-w-[280px]">
+                  {dismissModalHit.headline} ({dismissModalHit.employer.name})
+                </p>
+              </div>
+              <button
+                onClick={() => setDismissModalHit(null)}
+                className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="mt-3 text-xs text-neutral-600 dark:text-neutral-400">
+              Välj varför du inte vill söka jobbet. Annonsen sparas till Kanban under{" "}
+              <strong>Inaktuella</strong> och blockeras automatiskt från framtida sökningar.
+            </p>
+
+            <div className="mt-4 space-y-2">
+              <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                Förvalda anledningar:
+              </span>
+              <div className="grid grid-cols-1 gap-1.5">
+                {REASON_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDismissPreset(preset);
+                      setCustomDismissReason("");
+                    }}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                      selectedDismissPreset === preset && !customDismissReason
+                        ? "border-blue-500 bg-blue-50 font-medium text-blue-800 dark:border-blue-400 dark:bg-blue-950/50 dark:text-blue-200"
+                        : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-300"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-1">
+              <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                Eller skriv egen anledning:
+              </label>
+              <input
+                type="text"
+                value={customDismissReason}
+                onChange={(e) => setCustomDismissReason(e.target.value)}
+                placeholder="T.ex. Inte relevant för min inriktning..."
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              />
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setDismissModalHit(null)}
+                className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDismiss}
+                className="rounded-lg bg-neutral-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
+              >
+                Markera inaktuell
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -55,8 +55,9 @@ export async function POST(req: Request) {
       };
     }
 
-    // 3. Search both LinkedIn & JobTech in parallel
-    const [jobTechRes, linkedInRes] = await Promise.allSettled([
+    // 3. Search both LinkedIn & JobTech in parallel (with targeted data engineering sweep)
+    const isDefaultBroadSweep = !query && broadIt;
+    const [jobTechRes, jobTechDataRes, linkedInRes] = await Promise.allSettled([
       searchJobTech({
         query: query || undefined,
         occupationField: broadIt ? OCCUPATION_FIELD_DATA_IT : undefined,
@@ -64,15 +65,39 @@ export async function POST(req: Request) {
         remote,
         limit: 25,
       }),
+      isDefaultBroadSweep
+        ? searchJobTech({
+            query: '"Data Engineer" Datamodellering',
+            occupationField: OCCUPATION_FIELD_DATA_IT,
+            location,
+            remote,
+            limit: 15,
+          })
+        : Promise.resolve({ total: { value: 0 }, hits: [] }),
       searchLinkedInJobs({
-        query: query || (broadIt ? "IT OR Utvecklare OR Developer OR AI OR GenAI" : (settings?.targetRole || "Systemutvecklare & AI-utvecklare")),
+        query:
+          query ||
+          (broadIt
+            ? 'IT OR Utvecklare OR Developer OR AI OR GenAI OR "Data Engineer"'
+            : (settings?.targetRole || "Systemutvecklare & AI-utvecklare")),
         location,
         remote,
         limit: 20,
       }),
     ]);
 
-    const jtHits = jobTechRes.status === "fulfilled" ? jobTechRes.value.hits || [] : [];
+    const jtPrimaryHits = jobTechRes.status === "fulfilled" ? jobTechRes.value.hits || [] : [];
+    const jtDataHits = jobTechDataRes.status === "fulfilled" ? jobTechDataRes.value.hits || [] : [];
+
+    // Deduplicate JobTech hits between primary feed and targeted data sweep
+    const jtHitMap = new Map<string, typeof jtPrimaryHits[number]>();
+    for (const h of jtPrimaryHits) jtHitMap.set(h.id, h);
+    for (const h of jtDataHits) {
+      if (!jtHitMap.has(h.id)) {
+        jtHitMap.set(h.id, h);
+      }
+    }
+    const jtHits = Array.from(jtHitMap.values());
     const liHits = linkedInRes.status === "fulfilled" ? linkedInRes.value.hits || [] : [];
 
     // 4. Fetch existing job external IDs and blocked jobs to avoid duplicates and blocked listings

@@ -32,7 +32,7 @@ export function SettingsView() {
   const [broadItSearch, setBroadItSearch] = useState(true);
   const [minScore, setMinScore] = useState(50);
   const [searchKeywords, setSearchKeywords] = useState(
-    "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, IT-support"
+    "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, Data Engineer, Datamodellering, IT-support"
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

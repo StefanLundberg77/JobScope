@@ -28,7 +28,8 @@ export default function Home() {
       const res = await fetch("/api/jobs");
       if (res.ok) {
         const jobs: JobItem[] = await res.json();
-        setSavedCount(jobs.length);
+        const activeCount = jobs.filter((j) => j.status !== "dismissed").length;
+        setSavedCount(activeCount);
       }
     } catch (err) {
       console.error("Failed to fetch jobs count:", err);
@@ -61,7 +62,13 @@ export default function Home() {
         savedCount={savedCount}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main
+        className={`mx-auto ${
+          currentTab === "tracker" && !selectedJobId
+            ? "max-w-[1600px]"
+            : "max-w-7xl"
+        } px-4 py-8 sm:px-6 lg:px-8 transition-all duration-200`}
+      >
         {selectedJobId ? (
           <TailorStudio
             jobId={selectedJobId}

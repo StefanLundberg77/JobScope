@@ -36,68 +36,154 @@ export async function GET(req: Request) {
     let hits: UnifiedJobHit[] = [];
     let totalCount = 0;
 
-    if (source === "jobtech") {
-      const data = await searchJobTech({ query, occupationField, location, remote, limit, offset, sort: jtSort });
-      hits = (data.hits || []).map((h) => ({
-        ...h,
-        workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, remote),
-        source: "jobtech" as const,
-      }));
-      totalCount = data.total?.value || hits.length;
-    } else if (source === "linkedin") {
-      const data = await searchLinkedInJobs({ query, location, remote, limit, offset });
-      hits = data.hits || [];
-      totalCount = data.total?.value || hits.length;
-    } else {
-      // Source is "all": query both in parallel
-      const [jobTechResult, linkedInResult] = await Promise.allSettled([
-        searchJobTech({ query, occupationField, location, remote, limit, offset, sort: jtSort }),
-        searchLinkedInJobs({ query, location, remote, limit: Math.min(limit, 25), offset }),
+    /**
+     * Merges two collections of UnifiedJobHit, preserving unique IDs and upgrading
+     * workplace_model to "remote" if designated in either hit.
+     */
+    function mergeJobHits(
+      primaryHits: UnifiedJobHit[],
+      secondaryHits: UnifiedJobHit[]
+    ): UnifiedJobHit[] {
+      const map = new Map<string, UnifiedJobHit>();
+      for (const hit of primaryHits) {
+        map.set(hit.id, { ...hit });
+      }
+      for (const hit of secondaryHits) {
+        if (map.has(hit.id)) {
+          const existing = map.get(hit.id)!;
+          if (hit.workplace_model === "remote") {
+            existing.workplace_model = "remote";
+          }
+        } else {
+          map.set(hit.id, { ...hit });
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    async function fetchJobTechHits(): Promise<{ hits: UnifiedJobHit[]; total: number }> {
+      if (!remote) {
+        const data = await searchJobTech({ query, occupationField, location, remote: false, limit, offset, sort: jtSort });
+        const normalized = (data.hits || []).map((h) => ({
+          ...h,
+          workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, false),
+          source: "jobtech" as const,
+        }));
+        return { hits: normalized, total: data.total?.value || normalized.length };
+      }
+
+      // Additive remote search: query local jobs AND nationwide remote jobs in parallel
+      const [localRes, remoteRes] = await Promise.allSettled([
+        searchJobTech({ query, occupationField, location, remote: false, limit, offset, sort: jtSort }),
+        searchJobTech({ query, occupationField, location: "all", remote: true, limit, offset: 0, sort: jtSort }),
       ]);
 
-      const jtHits: UnifiedJobHit[] =
-        jobTechResult.status === "fulfilled"
-          ? (jobTechResult.value.hits || []).map((h) => ({
+      const localHits: UnifiedJobHit[] =
+        localRes.status === "fulfilled"
+          ? (localRes.value.hits || []).map((h) => ({
               ...h,
-              workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, remote),
+              workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, false),
               source: "jobtech" as const,
             }))
           : [];
 
-      const liHits: UnifiedJobHit[] =
-        linkedInResult.status === "fulfilled"
-          ? linkedInResult.value.hits || []
+      const remoteHits: UnifiedJobHit[] =
+        remoteRes.status === "fulfilled"
+          ? (remoteRes.value.hits || []).map((h) => ({
+              ...h,
+              workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, true),
+              source: "jobtech" as const,
+            }))
           : [];
 
-      const jtTotal = jobTechResult.status === "fulfilled" ? jobTechResult.value.total?.value || 0 : 0;
-      const liTotal = linkedInResult.status === "fulfilled" ? linkedInResult.value.total?.value || 0 : 0;
+      const localTotal = localRes.status === "fulfilled" ? localRes.value.total?.value || 0 : 0;
+      const remoteTotal = remoteRes.status === "fulfilled" ? remoteRes.value.total?.value || 0 : 0;
 
-      // Combine hits
-      hits = [...liHits, ...jtHits];
-      totalCount = jtTotal + liTotal;
+      const merged = mergeJobHits(localHits, remoteHits);
+      return { hits: merged, total: localTotal + remoteTotal };
     }
 
-    // Filter out strictly on-site jobs if user selected remote filter
-    if (remote) {
-      hits = hits.filter((h) => h.workplace_model !== "onsite");
-      totalCount = hits.length;
+    async function fetchLinkedInHits(): Promise<{ hits: UnifiedJobHit[]; total: number }> {
+      if (!remote) {
+        const data = await searchLinkedInJobs({ query, location, remote: false, limit, offset });
+        return { hits: data.hits || [], total: data.total?.value || (data.hits || []).length };
+      }
+
+      // Additive remote search: query local LinkedIn jobs AND nationwide remote jobs in parallel
+      const [localRes, remoteRes] = await Promise.allSettled([
+        searchLinkedInJobs({ query, location, remote: false, limit: Math.min(limit, 25), offset }),
+        searchLinkedInJobs({ query, location: "all", remote: true, limit: Math.min(limit, 25), offset: 0 }),
+      ]);
+
+      const localHits = localRes.status === "fulfilled" ? localRes.value.hits || [] : [];
+      const remoteHits = remoteRes.status === "fulfilled" ? remoteRes.value.hits || [] : [];
+      const localTotal = localRes.status === "fulfilled" ? localRes.value.total?.value || 0 : 0;
+      const remoteTotal = remoteRes.status === "fulfilled" ? remoteRes.value.total?.value || 0 : 0;
+
+      const merged = mergeJobHits(localHits, remoteHits);
+      return { hits: merged, total: localTotal + remoteTotal };
     }
 
-    // Query blocked jobs from database
-    const blockedRecords = await prisma.blockedJob.findMany({
-      select: { externalId: true },
+    if (source === "jobtech") {
+      const jt = await fetchJobTechHits();
+      hits = jt.hits;
+      totalCount = jt.total;
+    } else if (source === "linkedin") {
+      const li = await fetchLinkedInHits();
+      hits = li.hits;
+      totalCount = li.total;
+    } else {
+      const [jt, li] = await Promise.all([fetchJobTechHits(), fetchLinkedInHits()]);
+      hits = mergeJobHits(li.hits, jt.hits);
+      totalCount = jt.total + li.total;
+    }
+
+    // Query blocked jobs and saved listings from database
+    const [blockedRecords, dismissedJobs, savedJobs] = await Promise.all([
+      prisma.blockedJob.findMany({
+        select: { externalId: true, reason: true },
+      }),
+      prisma.jobListing.findMany({
+        where: { status: "dismissed" },
+        select: { externalId: true, dismissReason: true },
+      }),
+      prisma.jobListing.findMany({
+        where: { status: { not: "dismissed" } },
+        select: { externalId: true, status: true },
+      }),
+    ]);
+
+    const blockedMap = new Map<string, string | null>();
+    blockedRecords.forEach((b) => {
+      blockedMap.set(b.externalId, b.reason || null);
     });
-    const blockedSet = new Set(blockedRecords.map((b) => b.externalId));
+    dismissedJobs.forEach((d) => {
+      if (d.externalId) {
+        if (!blockedMap.has(d.externalId) || !blockedMap.get(d.externalId)) {
+          blockedMap.set(d.externalId, d.dismissReason || null);
+        }
+      }
+    });
 
-    // Tag each hit with its blocked status
-    hits = hits.map((h) => ({
-      ...h,
-      isBlocked: blockedSet.has(h.id),
-    }));
+    const savedMap = new Map<string, string>();
+    savedJobs.forEach((s) => {
+      if (s.externalId) savedMap.set(s.externalId, s.status);
+    });
+
+    // Tag each hit with its blocked status, dismissal reason, and saved pipeline status
+    hits = hits.map((h) => {
+      const isBlocked = blockedMap.has(h.id);
+      return {
+        ...h,
+        isBlocked,
+        dismissReason: isBlocked ? blockedMap.get(h.id) || null : null,
+        savedStatus: (savedMap.get(h.id) as any) || undefined,
+      };
+    });
 
     // Unless includeBlocked is explicitly requested, exclude blocked listings from the results
     if (!includeBlocked) {
-      hits = hits.filter((h) => !blockedSet.has(h.id));
+      hits = hits.filter((h) => !blockedMap.has(h.id));
       totalCount = hits.length;
     }
 
