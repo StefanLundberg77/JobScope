@@ -32,6 +32,24 @@ export async function GET(req: Request) {
     const jtSort = sort === "date" ? ("pubdate-desc" as const) : undefined;
     const limit = parseInt(searchParams.get("limit") || "25", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const excludeParam = searchParams.get("exclude") || "";
+    const excludeWords = excludeParam
+      .split(",")
+      .map((w) => w.trim())
+      .filter(Boolean);
+
+    // Format negative terms for upstream APIs
+    const negativeJtTerms = excludeWords.map((w) => `-${w}`).join(" ");
+    const jtQuery = query
+      ? `${query} ${negativeJtTerms}`.trim()
+      : negativeJtTerms;
+
+    const negativeLiTerms = excludeWords.map((w) => `NOT ${w}`).join(" ");
+    const liQuery = query
+      ? `${query} ${negativeLiTerms}`.trim()
+      : negativeLiTerms
+      ? `IT OR Utvecklare ${negativeLiTerms}`.trim()
+      : "";
 
     let hits: UnifiedJobHit[] = [];
     let totalCount = 0;
@@ -63,7 +81,7 @@ export async function GET(req: Request) {
 
     async function fetchJobTechHits(): Promise<{ hits: UnifiedJobHit[]; total: number }> {
       if (!remote) {
-        const data = await searchJobTech({ query, occupationField, location, remote: false, limit, offset, sort: jtSort });
+        const data = await searchJobTech({ query: jtQuery || undefined, occupationField, location, remote: false, limit, offset, sort: jtSort });
         const normalized = (data.hits || []).map((h) => ({
           ...h,
           workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, false),
@@ -74,8 +92,8 @@ export async function GET(req: Request) {
 
       // Additive remote search: query local jobs AND nationwide remote jobs in parallel
       const [localRes, remoteRes] = await Promise.allSettled([
-        searchJobTech({ query, occupationField, location, remote: false, limit, offset, sort: jtSort }),
-        searchJobTech({ query, occupationField, location: "all", remote: true, limit, offset: 0, sort: jtSort }),
+        searchJobTech({ query: jtQuery || undefined, occupationField, location, remote: false, limit, offset, sort: jtSort }),
+        searchJobTech({ query: jtQuery || undefined, occupationField, location: "all", remote: true, limit, offset: 0, sort: jtSort }),
       ]);
 
       const localHits: UnifiedJobHit[] =
@@ -105,14 +123,14 @@ export async function GET(req: Request) {
 
     async function fetchLinkedInHits(): Promise<{ hits: UnifiedJobHit[]; total: number }> {
       if (!remote) {
-        const data = await searchLinkedInJobs({ query, location, remote: false, limit, offset });
+        const data = await searchLinkedInJobs({ query: liQuery || undefined, location, remote: false, limit, offset });
         return { hits: data.hits || [], total: data.total?.value || (data.hits || []).length };
       }
 
       // Additive remote search: query local LinkedIn jobs AND nationwide remote jobs in parallel
       const [localRes, remoteRes] = await Promise.allSettled([
-        searchLinkedInJobs({ query, location, remote: false, limit: Math.min(limit, 25), offset }),
-        searchLinkedInJobs({ query, location: "all", remote: true, limit: Math.min(limit, 25), offset: 0 }),
+        searchLinkedInJobs({ query: liQuery || undefined, location, remote: false, limit: Math.min(limit, 25), offset }),
+        searchLinkedInJobs({ query: liQuery || undefined, location: "all", remote: true, limit: Math.min(limit, 25), offset: 0 }),
       ]);
 
       const localHits = localRes.status === "fulfilled" ? localRes.value.hits || [] : [];
@@ -136,6 +154,19 @@ export async function GET(req: Request) {
       const [jt, li] = await Promise.all([fetchJobTechHits(), fetchLinkedInHits()]);
       hits = mergeJobHits(li.hits, jt.hits);
       totalCount = jt.total + li.total;
+    }
+
+    // Filter out hits where headline matches any excluded keyword
+    if (excludeWords.length > 0) {
+      const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const excludeRegexes = excludeWords.map(
+        (w) => new RegExp(`(^|\\b|\\s)${escapeRegExp(w)}(\\b|\\s|$)`, "i")
+      );
+      hits = hits.filter((h) => {
+        const headline = h.headline || "";
+        return !excludeRegexes.some((rx) => rx.test(headline));
+      });
+      totalCount = Math.min(totalCount, hits.length);
     }
 
     // Query blocked jobs and saved listings from database

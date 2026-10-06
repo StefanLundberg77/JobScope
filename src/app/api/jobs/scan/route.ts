@@ -57,9 +57,27 @@ export async function POST(req: Request) {
 
     // 3. Search both LinkedIn & JobTech in parallel (with targeted data engineering sweep)
     const isDefaultBroadSweep = !query && broadIt;
+    const excludeWords: string[] = Array.isArray(body.exclude)
+      ? body.exclude
+      : typeof body.exclude === "string"
+      ? body.exclude.split(",").map((s: string) => s.trim()).filter(Boolean)
+      : ["Senior", "Erfaren"];
+    const negativeJtTerms = excludeWords.map((w) => `-${w}`).join(" ");
+    const negativeLiTerms = excludeWords.map((w) => `NOT ${w}`).join(" ");
+
+    const jtScanQuery = query
+      ? `${query} ${negativeJtTerms}`.trim()
+      : negativeJtTerms;
+    const liScanBase = broadIt
+      ? 'IT OR Utvecklare OR Developer OR AI OR GenAI OR "Data Engineer"'
+      : settings?.targetRole || "Systemutvecklare & AI-utvecklare";
+    const liScanQuery = query
+      ? `${query} ${negativeLiTerms}`.trim()
+      : `${liScanBase} ${negativeLiTerms}`.trim();
+
     const [jobTechRes, jobTechDataRes, linkedInRes] = await Promise.allSettled([
       searchJobTech({
-        query: query || undefined,
+        query: jtScanQuery || undefined,
         occupationField: broadIt ? OCCUPATION_FIELD_DATA_IT : undefined,
         location,
         remote,
@@ -67,7 +85,7 @@ export async function POST(req: Request) {
       }),
       isDefaultBroadSweep
         ? searchJobTech({
-            query: '"Data Engineer" Datamodellering',
+            query: `\"Data Engineer\" Datamodellering ${negativeJtTerms}`.trim(),
             occupationField: OCCUPATION_FIELD_DATA_IT,
             location,
             remote,
@@ -75,11 +93,7 @@ export async function POST(req: Request) {
           })
         : Promise.resolve({ total: { value: 0 }, hits: [] }),
       searchLinkedInJobs({
-        query:
-          query ||
-          (broadIt
-            ? 'IT OR Utvecklare OR Developer OR AI OR GenAI OR "Data Engineer"'
-            : (settings?.targetRole || "Systemutvecklare & AI-utvecklare")),
+        query: liScanQuery,
         location,
         remote,
         limit: 20,
@@ -122,6 +136,11 @@ export async function POST(req: Request) {
       )
     );
 
+    const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const excludeRegexes = excludeWords.map(
+      (w) => new RegExp(`(^|\\b|\\s)${escapeRegExp(w)}(\\b|\\s|$)`, "i")
+    );
+
     const candidates: Array<{
       externalId: string;
       source: "jobtech" | "linkedin";
@@ -131,6 +150,7 @@ export async function POST(req: Request) {
     }> = [];
 
     for (const h of liHits) {
+      if (excludeRegexes.some((r) => r.test(h.headline))) continue;
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
       if (
         !existingIds.has(h.id) &&
@@ -149,6 +169,7 @@ export async function POST(req: Request) {
     }
 
     for (const h of jtHits) {
+      if (excludeRegexes.some((r) => r.test(h.headline))) continue;
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
       if (
         !existingIds.has(h.id) &&

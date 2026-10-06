@@ -37,9 +37,15 @@ interface SearchSessionCache {
   source: "all" | "linkedin" | "jobtech";
   sort: "relevance" | "date";
   hideBlocked: boolean;
+  excludeWords?: string[];
   hits: UnifiedJobHit[];
   totalHits: number;
 }
+
+/**
+ * Predefined keywords commonly excluded to filter out senior or lead positions.
+ */
+const EXCLUDE_PRESETS = ["Senior", "Erfaren", "Lead", "Principal", "Arkitekt"];
 
 function getStoredSearchSession(): SearchSessionCache | null {
   if (typeof window === "undefined") return null;
@@ -108,6 +114,10 @@ export function JobSearchView({
   const [savedJobIds, setSavedJobIds] = useState<Record<string, string>>({}); // externalId -> localDbId
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // Excluded keywords state
+  const [excludeWords, setExcludeWords] = useState<string[]>(["Senior", "Erfaren"]);
+  const [customExcludeInput, setCustomExcludeInput] = useState("");
+
   // Blocked job listings state
   const [blockedJobIds, setBlockedJobIds] = useState<Set<string>>(new Set());
   const [hideBlocked, setHideBlocked] = useState(true);
@@ -138,7 +148,8 @@ export function JobSearchView({
     overrideSort?: "relevance" | "date",
     overrideHideBlocked?: boolean,
     overrideLocation?: "goteborg" | "commute" | "region_14" | "all",
-    overrideRemoteOnly?: boolean
+    overrideRemoteOnly?: boolean,
+    overrideExcludeWords?: string[]
   ) => {
     setLoading(true);
     try {
@@ -149,6 +160,7 @@ export function JobSearchView({
       const hb = overrideHideBlocked !== undefined ? overrideHideBlocked : hideBlocked;
       const loc = overrideLocation !== undefined ? overrideLocation : location;
       const rem = overrideRemoteOnly !== undefined ? overrideRemoteOnly : remoteOnly;
+      const exc = overrideExcludeWords !== undefined ? overrideExcludeWords : excludeWords;
       const params = new URLSearchParams({
         q,
         location: loc,
@@ -159,6 +171,9 @@ export function JobSearchView({
         includeBlocked: hb ? "false" : "true",
         limit: "25",
       });
+      if (exc.length > 0) {
+        params.set("exclude", exc.join(","));
+      }
 
       const res = await fetch(`/api/jobs/search?${params.toString()}`);
       if (res.ok) {
@@ -171,6 +186,32 @@ export function JobSearchView({
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleExcludeWord = (word: string) => {
+    setExcludeWords((prev) => {
+      const exists = prev.some((w) => w.toLowerCase() === word.toLowerCase());
+      if (exists) {
+        return prev.filter((w) => w.toLowerCase() !== word.toLowerCase());
+      } else {
+        return [...prev, word];
+      }
+    });
+  };
+
+  const handleAddCustomExclude = () => {
+    const trimmed = customExcludeInput.trim();
+    if (!trimmed) return;
+    if (!excludeWords.some((w) => w.toLowerCase() === trimmed.toLowerCase())) {
+      setExcludeWords((prev) => [...prev, trimmed]);
+    }
+    setCustomExcludeInput("");
+  };
+
+  const removeExcludeWord = (word: string) => {
+    setExcludeWords((prev) =>
+      prev.filter((w) => w.toLowerCase() !== word.toLowerCase())
+    );
   };
 
   // Restore session from sessionStorage on client mount (safe from SSR hydration mismatch)
@@ -205,6 +246,7 @@ export function JobSearchView({
       if (cached.source !== undefined) setSource(cached.source);
       if (cached.sort !== undefined) setSort(cached.sort);
       if (cached.hideBlocked !== undefined) setHideBlocked(cached.hideBlocked);
+      if (cached.excludeWords !== undefined) setExcludeWords(cached.excludeWords);
       if (cached.hits && cached.hits.length > 0) {
         setHits(cached.hits);
         setTotalHits(cached.totalHits || 0);
@@ -216,7 +258,8 @@ export function JobSearchView({
           cached.sort,
           cached.hideBlocked,
           cached.location,
-          cached.remoteOnly
+          cached.remoteOnly,
+          cached.excludeWords
         );
       }
     } else {
@@ -233,7 +276,7 @@ export function JobSearchView({
       return;
     }
     handleSearch();
-  }, [location, remoteOnly, source, broadIt, sort, hideBlocked]);
+  }, [location, remoteOnly, source, broadIt, sort, hideBlocked, excludeWords]);
 
   // Sync session state to sessionStorage once restored
   useEffect(() => {
@@ -247,6 +290,7 @@ export function JobSearchView({
         source,
         sort,
         hideBlocked,
+        excludeWords,
         hits,
         totalHits,
       };
@@ -657,6 +701,94 @@ export function JobSearchView({
               </span>
             </label>
           </div>
+        </div>
+
+        {/* Exclude Keywords Section */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 mr-1">
+            <Ban className="h-3.5 w-3.5" /> Exkludera:
+          </span>
+
+          {/* Predefined toggles */}
+          {EXCLUDE_PRESETS.map((preset) => {
+            const isExcluded = excludeWords.some(
+              (w) => w.toLowerCase() === preset.toLowerCase()
+            );
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => toggleExcludeWord(preset)}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                  isExcluded
+                    ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 shadow-xs"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                }`}
+                title={isExcluded ? `Klicka för att tillåta ${preset}` : `Klicka för att exkludera ${preset}`}
+              >
+                <span>{preset}</span>
+                {isExcluded && <X className="h-3 w-3 text-red-500" />}
+              </button>
+            );
+          })}
+
+          {/* Custom exclusion chips */}
+          {excludeWords
+            .filter(
+              (w) => !EXCLUDE_PRESETS.some((p) => p.toLowerCase() === w.toLowerCase())
+            )
+            .map((word) => (
+              <span
+                key={word}
+                className="flex items-center gap-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 px-2.5 py-1 text-xs font-medium shadow-xs"
+              >
+                <span>{word}</span>
+                <button
+                  type="button"
+                  onClick={() => removeExcludeWord(word)}
+                  className="hover:text-red-900 dark:hover:text-red-100 cursor-pointer"
+                  title={`Ta bort exkludering av ${word}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+
+          {/* Free text input for adding custom exclusion keyword */}
+          <div className="flex items-center gap-1.5">
+            <input
+              type="text"
+              value={customExcludeInput}
+              onChange={(e) => setCustomExcludeInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddCustomExclude();
+                }
+              }}
+              placeholder="+ Fritext (t.ex. trainee)..."
+              className="w-44 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-2.5 py-1 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:border-red-500 focus:outline-none"
+            />
+            {customExcludeInput.trim() && (
+              <button
+                type="button"
+                onClick={handleAddCustomExclude}
+                className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 cursor-pointer shadow-xs"
+              >
+                Lägg till
+              </button>
+            )}
+          </div>
+
+          {excludeWords.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setExcludeWords([])}
+              className="ml-auto text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 underline cursor-pointer"
+            >
+              Rensa alla
+            </button>
+          )}
         </div>
       </div>
 
