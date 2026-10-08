@@ -309,10 +309,30 @@ VIKTIG PROFILKONTEXT & SÖKINSTÄLLNING:
   * DevOps, moln (Cloud), infrastruktur och nätverk
   * Datateknik, datamodellering, data engineering, BI och AI/automation
   * IT-konsult och teknisk projektkoordinering
-- BEDÖMNINGSPRINCIP FÖR BREDA IT-ROLLER:
-  * Sätt INTE ett lågt matchningsscore enbart för att rollens titel inte heter exakt "Systemutvecklare" eller "AI-utvecklare".
-  * Om rollen gäller t.ex. Data Engineer, datamodellering, IT-support, applikationsdrift, testare eller teknisk samordnare: värdera kandidatens systemförståelse, databas- och SQL-vana, moderna verktyg (dbt, DuckDB, dltHub, Dagster, Snowflake, Pandas, relationsdatabaser), programmeringslogik, Linux/Docker-kunskap samt fleråriga stresstålighet, teamledarvana och problemlösningsförmåga som mycket starka och direkt överförbara meriter.
-  * Beräkna en rättvis och realistisk matchningsprocent (0-100) baserat på kärnkrav och hur väl kandidatens samlade tekniska grund och inlärningsförmåga passar rollen.
+- BEDÖMNINGSPRINCIP FÖR MATCHNING & ATS-SCORING (INGA GLÄDJEKALKYLER):
+  * Var fullständigt objektiv, saklig och sträng. Sätt ALDRIG uppblåsta glädjebetyg.
+  * Kandidaten söker brett inom IT och har en stark teknisk grund (C#/.NET, Python, SQL, REST API, Docker/Linux, AI/RAG, databaser) samt beprövat operativt ledarskap/drift.
+  * Du måste dock skilja stenhårt mellan faktisk bevisad yrkeserfarenhet under relevant titel kontra teoretisk/projektbaserad kunskap eller överförbara färdigheter.
+
+STRIKT POÄNGSKALA & KALIBRERING (0-100):
+* 85–100% (Exceptionell direktmatchning):
+  - Uppfyller i princip ALLA skallkrav OCH har dokumenterad, formell yrkeserfarenhet i exakt eller direkt närliggande roll.
+  - Behärskar produktionstester, arkitektur och kärnstacken.
+* 70–84% (Stark matchning med mindre luckor):
+  - Uppfyller alla centrala tekniska skallkrav OCH har relevant IT-yrkeserfarenhet.
+  - Mindre luckor i enstaka önskemål eller något färre erfarenhetsår än annonsens idealkrav.
+* 50–69% (Partiell / Överförbar matchning):
+  - Har god teknisk grund (t.ex. programmering, SQL, relationsdatabaser, egna projekt) men SAKNAR formell yrkeserfarenhet i den specifika rollen, eller saknar centrala verktyg som efterfrågas (t.ex. BI-rapporteringsverktyg vid BI-roller, Kubernetes/Terraform vid DevOps).
+  - Detta är det korrekta och ärliga spannet när kandidaten har god potential och relevanta sidoprojekt men saknar anställningsår under titeln.
+* 30–49% (Svag matchning):
+  - Betydande kompetensgap, felaktig senioritetsnivå (t.ex. kräver 5-8 års specialistledarskap), eller en helt annan teknisk inriktning.
+* < 30% (Ej relevant):
+  - Rollen matchar inte kandidatens profil.
+
+OBLIGATORISKA POÄNGAVDRAG:
+- Saknad formell yrkeserfarenhet: Om annonsen förutsätter eller efterfrågar yrkeserfarenhet i rollen och kandidaten endast har projekt/självstudier/skolmeriter: dra automatiskt av minst 15–25 procentenheter från maxpoängen.
+- Saknade centrala domänverktyg: Om rollens primära verktyg/domäner (t.ex. Power BI/Tableau vid BI-roller, cloud-infrastruktur) saknas i profilen: dra automatiskt av minst 10–15 procentenheter.
+- Överförbara meriter (operativ drift, problemlösning, generell SQL, mjukvarubakgrund): Placera dessa i transferableSkills och låt dem lyfta kandidaten till en solid partiell match (50–65%), men blås ALDRIG upp betyget till 70–90% om yrkeserfarenhet och kärnverktyg saknas.
 
 JOBBANNONS:
 Titel: ${job.title}
@@ -353,7 +373,8 @@ Utbildning: ${JSON.stringify(
   )}
 
 Instruktioner:
-- Beräkna en realistisk och rättvis matchningsprocent (0-100) baserat på kärnkrav, relevanta teknologier och kandidatens samlade IT-kompetens.
+- Beräkna en realistisk och kalibrerad matchningsprocent (0-100) enligt ovanstående strikta matris.
+- Sammanfattningen (summary) ska vara rak, ärlig och fri från glädjekalkyler – lyft fram styrkor men var tydlig med gap i yrkeserfarenhet eller verktyg utan att försköna.
 - Identifiera starka matchningar (kompetenser och teknologier kandidaten har som annonsen uttryckligen söker).
 - Identifiera överförbara färdigheter (kandidaten har snarlik erfarenhet, projekt eller teknisk grund som kan appliceras).
 - Identifiera saknade nyckelord/krav som kandidaten antingen saknar eller inte har explicit nämnt.
@@ -361,8 +382,8 @@ Instruktioner:
 
 Svara EXAKT med detta JSON-schema:
 {
-  "score": 85,
-  "summary": "1-2 meningar om övergripande matchning",
+  "score": 62,
+  "summary": "1-2 meningar om övergripande matchning, helt fri från glädjekalkyler",
   "strongMatches": ["Match 1", "Match 2"],
   "transferableSkills": ["Färdighet 1", "Färdighet 2"],
   "missingKeywords": ["Nyckelord 1", "Nyckelord 2"],
@@ -515,6 +536,17 @@ International tech hiring leads and engineering managers value confidence, clari
           ${profile.phone} | ${profile.email}
           ${profile.linkedin ? profile.linkedin + " | " : ""}${profile.github || ""}
 
+6. STRICT ATS MATCH ANALYSIS GUIDELINES (matchAnalysis) – NO INFLATED SCORES:
+   - Calculate a strict, objective, and realistic matchScore (0-100) calibrated as follows:
+     * 85–100%: Meets virtually all requirements AND has documented, formal professional experience in the role.
+     * 70–84%: Meets technical core requirements with relevant IT industry experience, with minor gaps.
+     * 50–69%: Solid technical foundation/potential but LACKS formal industry tenure in the specific title or lacks primary domain suites (e.g. BI suites for BI roles, cloud infrastructure).
+     * 30–49%: Significant skill gap or misaligned seniority level.
+     * < 30%: Not relevant.
+   - Mandatory deductions: Deduct 15–25 points if formal on-the-job tenure in the title is absent (projects/self-study only), and 10–15 points if primary tooling is missing.
+   - Transferable skills provide a solid partial match (50–65%), but must NEVER inflate the score to 70–90% without direct industry tenure.
+   - Provide an honest, unvarnished 1-2 sentence match overview in summary.
+
 JOB POSTING:
 Title: ${job.title}
 Company: ${job.company}
@@ -563,8 +595,8 @@ Respond EXACTLY with this JSON schema (all string values translated into English
     }
   ],
   "matchAnalysis": {
-    "score": 85,
-    "summary": "Match overview summary in English",
+    "score": 62,
+    "summary": "Realistic, unvarnished match overview summary in English",
     "strongMatches": ["Match 1", "Match 2"],
     "transferableSkills": ["Skill 1"],
     "missingKeywords": ["Keyword 1"],
@@ -651,6 +683,19 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
           ${profile.phone} | ${profile.email}
           ${profile.linkedin ? profile.linkedin + " | " : ""}${profile.github || ""}
 
+5. RIKTLINJER FÖR ATS-MATCHNINGSANALYS (matchAnalysis) – INGA GLÄDJEKALKYLER:
+   - Beräkna ett strikt, objektivt och kalibrerat matchScore (0-100) baserat på följande matris:
+     * 85–100%: Uppfyller i princip alla skallkrav OCH har dokumenterad formell yrkeserfarenhet i rollen.
+     * 70–84%: Uppfyller tekniska kärnkrav och har relevant IT-yrkeserfarenhet, med mindre luckor i enstaka önskemål eller något färre erfarenhetsår.
+     * 50–69%: God teknisk grund och relevant potential men SAKNAR formell yrkeserfarenhet under specifik titel eller saknar centrala domänverktyg (t.ex. BI-rapporteringsverktyg vid BI-roller, molninfrastruktur).
+     * 30–49%: Betydande kompetensgap, felaktig senioritetsnivå (t.ex. kräver 5-8 års specialistledarskap), eller helt annan teknisk inriktning.
+     * < 30%: Ej relevant.
+   - Obligatoriska poängavdrag:
+     * Dra av 15–25 procentenheter om formell yrkeserfarenhet i rollen saknas och kandidaten endast har projekt/självstudier/skolmeriter.
+     * Dra av 10–15 procentenheter om rollens primära verktyg/sviter saknas i profilen.
+   - Överförbara meriter (operativ drift, problemlösning, generell programmering) lyfter ansökan till en hederlig grundmatch (50–65%), men får ALDRIG blåsa upp poängen till 70–90% om yrkeserfarenhet saknas.
+   - Skriv en rak och ärlig sammanfattning (summary) på 1-2 meningar utan försköning.
+
 JOBBANNONS:
 Titel: ${job.title}
 Företag: ${job.company}
@@ -699,8 +744,8 @@ Svara EXAKT med detta JSON-schema:
     }
   ],
   "matchAnalysis": {
-    "score": 85,
-    "summary": "Övergripande matchning",
+    "score": 62,
+    "summary": "Övergripande matchning, ärlig och helt fri från glädjekalkyler",
     "strongMatches": ["Punkt 1", "Punkt 2"],
     "transferableSkills": ["Punkt 1"],
     "missingKeywords": ["Nyckelord 1"],

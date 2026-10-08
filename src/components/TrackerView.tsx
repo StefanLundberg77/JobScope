@@ -273,7 +273,15 @@ export function TrackerView({
 
                     {/* Match Score Badge */}
                     {job.matchScore !== null && job.matchScore !== undefined && (
-                      <div className="mt-2 inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                      <div
+                        className={`mt-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                          job.matchScore >= 75
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            : job.matchScore >= 50
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+                            : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                        }`}
+                      >
                         <Sparkles className="h-2.5 w-2.5 shrink-0" />
                         {job.matchScore}% match
                       </div>

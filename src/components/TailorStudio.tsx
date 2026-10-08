@@ -484,10 +484,26 @@ export function TailorStudio({
 
       {/* Match Score & Analysis Banner */}
       {matchAnalysis && (
-        <div className="no-print rounded-2xl border border-blue-100 bg-blue-50/70 p-5 dark:border-blue-950 dark:bg-blue-950/30">
+        <div
+          className={`no-print rounded-2xl border p-5 ${
+            matchAnalysis.score >= 75
+              ? "border-emerald-200 bg-emerald-50/70 dark:border-emerald-950 dark:bg-emerald-950/30"
+              : matchAnalysis.score >= 50
+              ? "border-blue-100 bg-blue-50/70 dark:border-blue-950 dark:bg-blue-950/30"
+              : "border-amber-200 bg-amber-50/70 dark:border-amber-950 dark:bg-amber-950/30"
+          }`}
+        >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
+              <div
+                className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl text-white shadow-sm ${
+                  matchAnalysis.score >= 75
+                    ? "bg-emerald-600"
+                    : matchAnalysis.score >= 50
+                    ? "bg-blue-600"
+                    : "bg-amber-600"
+                }`}
+              >
                 <span className="text-xl font-black">{matchAnalysis.score}%</span>
                 <span className="text-[10px] uppercase font-semibold tracking-wider">
                   Match
