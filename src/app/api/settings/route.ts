@@ -69,6 +69,7 @@ export async function PUT(req: Request) {
       if (!trimmed) return "gemini-3.6-flash";
       if (trimmed === "gemini-2.5-flash") return "gemini-3.6-flash";
       if (trimmed === "gemini-2.5-pro") return "gemini-3.8-flash";
+      if (trimmed === "gemini-3.5-flash") return "gemini-3.6-flash";
       return trimmed;
     };
 

@@ -53,6 +53,8 @@ export function SettingsView() {
                 ? "gemini-3.6-flash"
                 : data.aiModel === "gemini-2.5-pro"
                 ? "gemini-3.8-flash"
+                : data.aiModel === "gemini-3.5-flash"
+                ? "gemini-3.6-flash"
                 : data.aiModel;
             setAiModel(mappedModel);
           }
@@ -215,7 +217,42 @@ export function SettingsView() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Gemini 3.5 Flash-Lite */}
+            <label
+              className={`relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${
+                aiModel === "gemini-3.5-flash-lite"
+                  ? "border-emerald-500 bg-emerald-50/50 dark:border-emerald-500 dark:bg-emerald-950/20 shadow-xs"
+                  : "border-neutral-200 bg-white hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-semibold text-sm text-neutral-900 dark:text-white flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  3.5 Flash-Lite
+                </span>
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  Hög driftsäkerhet
+                </span>
+              </div>
+              <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3">
+                Blixtsnabb (&lt; 1 s) med egen separat kvot och maximal drifttillgänglighet. Perfekt när standardmodellerna är hårt belastade.
+              </p>
+              <div className="mt-auto flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="aiModel"
+                  value="gemini-3.5-flash-lite"
+                  checked={aiModel === "gemini-3.5-flash-lite"}
+                  onChange={() => setAiModel("gemini-3.5-flash-lite")}
+                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  Välj Flash-Lite (Hög kvot)
+                </span>
+              </div>
+            </label>
+
             {/* Gemini 3.6 Flash */}
             <label
               className={`relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${
@@ -227,14 +264,14 @@ export function SettingsView() {
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-semibold text-sm text-neutral-900 dark:text-white flex items-center gap-1.5">
                   <Zap className="h-4 w-4 text-amber-500" />
-                  Gemini 3.6 Flash
+                  3.6 Flash
                 </span>
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                  Standard & 100% Gratis
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                  Standard Gratis
                 </span>
               </div>
               <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3">
-                Blixtsnabb (1–3 s) och 100 % kostnadsfri i Google AI Studio Free Tier. Rekommenderas för automatisk matchning, sökning och snabb CV-skräddarsyning.
+                Balanserad standardmodell på gratisnivån (20 anrop/dygn). Rekommenderas för normal daglig matchning och CV-skräddarsyning.
               </p>
               <div className="mt-auto flex items-center gap-2">
                 <input
@@ -246,7 +283,7 @@ export function SettingsView() {
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Välj 3.6 Flash (Rekommenderad)
+                  Välj 3.6 Flash (Standard)
                 </span>
               </div>
             </label>
@@ -255,21 +292,21 @@ export function SettingsView() {
             <label
               className={`relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${
                 aiModel === "gemini-3.8-flash"
-                  ? "border-blue-500 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/20 shadow-xs"
+                  ? "border-indigo-500 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-950/20 shadow-xs"
                   : "border-neutral-200 bg-white hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-semibold text-sm text-neutral-900 dark:text-white flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-indigo-500" />
-                  Gemini 3.8 Flash
+                  3.8 Flash
                 </span>
                 <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
-                  Senaste & Hög kapacitet
+                  Resonemang
                 </span>
               </div>
               <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3">
-                Googles senaste generation av Flash med utökad resonemangsförmåga för djupare analys och nyanserat personligt brev.
+                Googles senaste Flash-generation med djupare resonemang. Kan tidvis uppleva tillfälliga kapacitetsspikar (503).
               </p>
               <div className="mt-auto flex items-center gap-2">
                 <input
@@ -278,7 +315,7 @@ export function SettingsView() {
                   value="gemini-3.8-flash"
                   checked={aiModel === "gemini-3.8-flash"}
                   onChange={() => setAiModel("gemini-3.8-flash")}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                 />
                 <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Välj 3.8 Flash (Senaste)
@@ -287,9 +324,14 @@ export function SettingsView() {
             </label>
           </div>
 
-          <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600 dark:bg-neutral-800/60 dark:text-neutral-300 border border-neutral-100 dark:border-neutral-800">
-            <span className="font-semibold text-neutral-800 dark:text-neutral-200">Tips om gratisnivå:</span>{" "}
-            Med en API-nyckel skapad i ett projekt utan kopplat kreditkort i Google AI Studio körs allt på den rena gratisnivån med <strong>Gemini 3.6 Flash</strong> utan någon som helst kostnad.
+          <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600 dark:bg-neutral-800/60 dark:text-neutral-300 border border-neutral-100 dark:border-neutral-800 space-y-1.5">
+            <div className="flex items-center gap-1.5 font-semibold text-neutral-800 dark:text-neutral-200">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <span>Automatisk intelligent fallback är aktiverad:</span>
+            </div>
+            <p className="leading-relaxed">
+              Om din valda modell når dygnsgränsen (20 anrop/dygn på gratisnivån) eller drabbas av tillfällig hög belastning (503 Service Unavailable), växlar JobScope automatiskt över till <strong>Gemini 3.5 Flash-Lite</strong> i bakgrunden så att dina analyser och skräddarsydda CV:n slutförs utan avbrott.
+            </p>
           </div>
         </div>
 

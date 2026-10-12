@@ -54,6 +54,7 @@ export async function getActiveAiModel(preferredModel?: string): Promise<string>
     const trimmed = modelName.trim();
     if (trimmed === "gemini-2.5-flash") return "gemini-3.6-flash";
     if (trimmed === "gemini-2.5-pro") return "gemini-3.8-flash";
+    if (trimmed === "gemini-3.5-flash") return "gemini-3.6-flash";
     return trimmed;
   };
 
@@ -75,8 +76,8 @@ export async function getActiveAiModel(preferredModel?: string): Promise<string>
 
 /**
  * Executes a generateContent call with automatic fallback across compatible models
- * (e.g. gemini-3.6-flash -> gemini-3.5-flash -> gemini-3.8-flash)
- * if Google's endpoint returns a 503 high demand spike, 429 quota, or 404 model error.
+ * (e.g. preferredModel -> gemini-3.6-flash -> gemini-3.8-flash -> gemini-3.5-flash-lite -> gemini-3.1-flash-lite)
+ * if Google's endpoint returns a 503 high demand spike, 429 quota exhaustion, or temporary network error.
  */
 export async function generateContentWithFallback(
   genAI: GoogleGenerativeAI,
@@ -88,11 +89,20 @@ export async function generateContentWithFallback(
   }
 ) {
   const candidateModels = Array.from(
-    new Set([preferredModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash"])
+    new Set([
+      preferredModel,
+      "gemini-3.6-flash",
+      "gemini-3.8-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-3.1-flash-lite",
+    ])
   );
 
   let lastError: any;
-  for (const modelName of candidateModels) {
+  for (let i = 0; i < candidateModels.length; i++) {
+    const modelName = candidateModels[i];
+    const isLastModel = i === candidateModels.length - 1;
+
     try {
       const model = genAI.getGenerativeModel({
         model: modelName,
@@ -101,19 +111,27 @@ export async function generateContentWithFallback(
       return await model.generateContent(contents);
     } catch (err: any) {
       lastError = err;
-      const isTransientOrNotFound =
+      const errorMessage = String(err?.message || "");
+      const isTransientOrQuota =
         err?.status === 503 ||
-        err?.status === 404 ||
         err?.status === 429 ||
-        err?.message?.includes("503") ||
-        err?.message?.includes("404") ||
-        err?.message?.includes("high demand") ||
-        err?.message?.includes("not found");
+        err?.status === 404 ||
+        errorMessage.includes("503") ||
+        errorMessage.includes("429") ||
+        errorMessage.includes("404") ||
+        errorMessage.includes("high demand") ||
+        errorMessage.includes("quota") ||
+        errorMessage.includes("Quota exceeded") ||
+        errorMessage.includes("Resource has been exhausted") ||
+        errorMessage.includes("fetch failed");
 
-      if (isTransientOrNotFound && modelName !== candidateModels[candidateModels.length - 1]) {
+      if (isTransientOrQuota && !isLastModel) {
         console.warn(
-          `[JobScope Gemini] Model ${modelName} returned temporary error (${err.message}). Retrying with fallback model...`
+          `[JobScope Gemini] Model ${modelName} returned temporary error or quota limit (${err.message}). Retrying with fallback model ${candidateModels[i + 1]}...`
         );
+        if (err?.status === 503 || errorMessage.includes("503") || errorMessage.includes("high demand")) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
         continue;
       }
       throw err;
