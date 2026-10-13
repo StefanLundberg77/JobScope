@@ -180,7 +180,7 @@ export async function GET(req: Request) {
       }),
       prisma.jobListing.findMany({
         where: { status: { not: "dismissed" } },
-        select: { externalId: true, status: true },
+        select: { externalId: true, status: true, notes: true },
       }),
     ]);
 
@@ -196,19 +196,21 @@ export async function GET(req: Request) {
       }
     });
 
-    const savedMap = new Map<string, string>();
+    const savedMap = new Map<string, { status: string; notes?: string | null }>();
     savedJobs.forEach((s) => {
-      if (s.externalId) savedMap.set(s.externalId, s.status);
+      if (s.externalId) savedMap.set(s.externalId, { status: s.status, notes: s.notes });
     });
 
     // Tag each hit with its blocked status, dismissal reason, and saved pipeline status
     hits = hits.map((h) => {
       const isBlocked = blockedMap.has(h.id);
+      const savedInfo = savedMap.get(h.id);
       return {
         ...h,
         isBlocked,
         dismissReason: isBlocked ? blockedMap.get(h.id) || null : null,
-        savedStatus: (savedMap.get(h.id) as any) || undefined,
+        savedStatus: (savedInfo?.status as any) || undefined,
+        notes: savedInfo?.notes || null,
       };
     });
 

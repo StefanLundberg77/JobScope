@@ -154,6 +154,7 @@ export interface JobItem {
   matchScore?: number | null;
   matchAnalysis?: MatchAnalysis | null;
   dismissReason?: string | null;
+  notes?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   applications?: {
@@ -209,6 +210,7 @@ export interface UnifiedJobHit {
   isBlocked?: boolean;
   dismissReason?: string | null;
   savedStatus?: ApplicationStatus;
+  notes?: string | null;
 }
 
 /**

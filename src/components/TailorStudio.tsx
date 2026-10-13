@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Camera,
   Image as ImageIcon,
+  StickyNote,
 } from "lucide-react";
 import {
   JobItem,
@@ -83,6 +84,18 @@ const LABELS = {
 };
 
 /**
+ * Common preset quick-templates for personal application notes in TailorStudio.
+ */
+const STUDIO_NOTE_TEMPLATES = [
+  "📞 Kontaktperson: ",
+  "📅 Återkoppling senast: ",
+  "💬 Intervjuanteckningar & frågor: ",
+  "💰 Löneanspråk: ",
+  "🎯 Specifika krav att betona: ",
+  "💡 Frågor att ställa till företaget: ",
+];
+
+/**
  * Props for the TailorStudio component.
  */
 interface TailorStudioProps {
@@ -109,7 +122,7 @@ export function TailorStudio({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [copiedLetter, setCopiedLetter] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"cv" | "letter" | "email" | "print" | "jobinfo">("cv");
+  const [activeTab, setActiveTab] = useState<"cv" | "letter" | "email" | "notes" | "print" | "jobinfo">("cv");
 
   // Language options: auto-detect or force Swedish/English
   const [languageOption, setLanguageOption] = useState<"auto" | "sv" | "en">("auto");
@@ -164,7 +177,7 @@ export function TailorStudio({
             setEmailSubject(app.emailSubject || "");
             setEmailBody(app.emailBody || "");
             setDiffNotes(app.diffNotes || []);
-            setNotes(app.notes || "");
+            setNotes(app.notes || j.notes || "");
             if (app.language === "en" || app.language === "sv") {
               setActiveLanguage(app.language);
               setLanguageOption(app.language);
@@ -175,6 +188,8 @@ export function TailorStudio({
               setActiveLanguage(inferred);
               setLanguageOption(inferred);
             }
+          } else if (j.notes) {
+            setNotes(j.notes);
           }
         }
 
@@ -267,6 +282,9 @@ export function TailorStudio({
 
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
+      if (job) {
+        setJob({ ...job, notes });
+      }
       if (onJobUpdated) onJobUpdated();
     } catch (err: unknown) {
       setErrorMessage(
@@ -580,6 +598,21 @@ export function TailorStudio({
         </button>
 
         <button
+          onClick={() => setActiveTab("notes")}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all ${
+            activeTab === "notes"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400"
+          }`}
+        >
+          <StickyNote className="h-4 w-4" />
+          <span>Minnesanteckningar</span>
+          {notes && (
+            <span className="flex h-2 w-2 rounded-full bg-amber-500" title="Anteckningar finns" />
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab("print")}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all ${
             activeTab === "print"
@@ -628,6 +661,22 @@ export function TailorStudio({
             </div>
           ) : (
             <>
+              {/* Note reminder banner */}
+              {notes && (
+                <div
+                  onClick={() => setActiveTab("notes")}
+                  className="flex cursor-pointer items-center justify-between rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+                  title="Klicka för att öppna fliken Minnesanteckningar"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <StickyNote className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span className="font-semibold text-amber-800 dark:text-amber-300">Minnesanteckning:</span>
+                    <span className="truncate italic">{notes}</span>
+                  </div>
+                  <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300 underline shrink-0 ml-2">Öppna</span>
+                </div>
+              )}
+
               {/* Diff notes summary */}
               {diffNotes.length > 0 && (
                 <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
@@ -830,6 +879,22 @@ export function TailorStudio({
             </div>
           </div>
 
+          {/* Note reminder banner */}
+          {notes && (
+            <div
+              onClick={() => setActiveTab("notes")}
+              className="flex cursor-pointer items-center justify-between rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+              title="Klicka för att öppna fliken Minnesanteckningar"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <StickyNote className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span className="font-semibold text-amber-800 dark:text-amber-300">Minnesanteckning:</span>
+                <span className="truncate italic">{notes}</span>
+              </div>
+              <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300 underline shrink-0 ml-2">Öppna</span>
+            </div>
+          )}
+
           <textarea
             rows={16}
             value={coverLetter}
@@ -983,7 +1048,90 @@ export function TailorStudio({
         </div>
       )}
 
-      {/* TAB 3: Printable PDF Preview */}
+      {/* TAB 4: Personal Notes & Preparation Studio */}
+      {activeTab === "notes" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-100 pb-4 dark:border-neutral-800">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                  <StickyNote className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                    Minnesanteckningar för ansökan
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    Egna noteringar om kontaktpersoner, återkoppling, intervjufrågor och löneanspråk för {job.title} ({job.company}).
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveManual}
+                disabled={savingManual}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              >
+                {savingManual ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Sparar...
+                  </>
+                ) : savedSuccess ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                    Sparat!
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3.5 w-3.5" />
+                    Spara anteckningar
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Quick Template Chips */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
+                Snabbmallar:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {STUDIO_NOTE_TEMPLATES.map((tmpl) => (
+                  <button
+                    key={tmpl}
+                    type="button"
+                    onClick={() => {
+                      setNotes((prev) => (prev ? `${prev}\n\n${tmpl}` : tmpl));
+                    }}
+                    className="rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                  >
+                    + {tmpl.replace(/: $/, "")}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Large Textarea */}
+            <div className="mt-2">
+              <textarea
+                rows={14}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Skriv dina minnesanteckningar här...&#10;&#10;T.ex:&#10;• Vem har du pratat med? (namn, mejl, telefon, LinkedIn)&#10;• Vad betonade de i annonsen eller under samtalet?&#10;• Datum för när du skickade in och planerat datum för uppföljning&#10;• Frågor du vill ställa under intervjun&#10;• Löneanspråk och förmåner"
+                className="w-full rounded-xl border border-neutral-300 p-4 text-sm leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white font-sans"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-neutral-400 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <span>{notes.length} tecken</span>
+              <span>Synkroniseras automatiskt med jobbets kort i jobbsök och i Kanban-tavlan.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: Printable PDF Preview */}
       {activeTab === "print" && (
         <div className="space-y-4">
           {/* Controls toolbar */}

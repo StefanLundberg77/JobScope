@@ -205,6 +205,14 @@ export async function PUT(
       }
     }
 
+    // Keep JobListing.notes in sync if notes are updated
+    if (notes !== undefined) {
+      await prisma.jobListing.update({
+        where: { id },
+        data: { notes },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       application: {

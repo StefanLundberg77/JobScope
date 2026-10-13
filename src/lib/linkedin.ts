@@ -256,29 +256,55 @@ export async function searchLinkedInJobs(
  * @returns Normalized ParsedJobAd payload
  */
 export async function fetchLinkedInJobDetails(urlOrId: string): Promise<ParsedJobAd> {
-  let targetUrl = urlOrId;
-  if (!targetUrl.startsWith("http")) {
-    const cleanId = targetUrl.replace(/^linkedin-/, "");
-    targetUrl = `https://www.linkedin.com/jobs/view/${cleanId}`;
+  const idMatch = urlOrId.match(/(?:linkedin-|^|view\/|currentJobId=)(\d+)/);
+  const cleanId = idMatch
+    ? idMatch[1]
+    : urlOrId.startsWith("http")
+    ? ""
+    : urlOrId.replace(/^linkedin-/, "").replace(/\D+/g, "");
+
+  let targetUrl = urlOrId.startsWith("http")
+    ? urlOrId
+    : `https://www.linkedin.com/jobs/view/${cleanId}`;
+
+  const headers = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept-Language": "sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7",
+  };
+
+  let html = "";
+  let lastStatus = 0;
+
+  // 1. Try public guest API endpoint first (much less prone to 429 rate limiting)
+  if (cleanId) {
+    try {
+      const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${cleanId}`;
+      const guestRes = await fetch(guestUrl, { headers });
+      if (guestRes.ok) {
+        html = await guestRes.text();
+      } else {
+        lastStatus = guestRes.status;
+      }
+    } catch (e) {
+      console.warn("LinkedIn guest API jobPosting fetch failed:", e);
+    }
   }
 
-  const res = await fetch(targetUrl, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      "Accept-Language": "sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Kunde inte hämta LinkedIn-annons (HTTP ${res.status})`);
+  // 2. If guest endpoint did not yield HTML, fallback to standard web page view
+  if (!html) {
+    const pageRes = await fetch(targetUrl, { headers });
+    if (pageRes.ok) {
+      html = await pageRes.text();
+    } else {
+      lastStatus = pageRes.status;
+      throw new Error(`Kunde inte hämta LinkedIn-annons (HTTP ${lastStatus})`);
+    }
   }
 
-  const html = await res.text();
-
-  // Extract Title
+  // Extract Title (supports h1 from view page and h2 from guest endpoint)
   const titleMatch =
-    html.match(/<h1[^>]*class="[^"]*top-card-layout__title[^"]*"[^>]*>([\s\S]*?)<\/h1>/i) ||
+    html.match(/<h[12][^>]*class="[^"]*top-card-layout__title[^"]*"[^>]*>([\s\S]*?)<\/h[12]>/i) ||
     html.match(/<title>([\s\S]*?)<\/title>/i);
   const title = titleMatch
     ? decodeHtml(titleMatch[1].replace(/<[^>]+>/g, "")).split("|")[0].split("-")[0].trim()

@@ -47,6 +47,7 @@ model JobListing {
   matchScore      Int?
   matchAnalysis   String?
   dismissReason   String?
+  notes           String?
   applications    TailoredApplication[]
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt

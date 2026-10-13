@@ -73,6 +73,7 @@ export async function PATCH(
       data: {
         ...(status && { status }),
         ...(dismissReason !== undefined && { dismissReason }),
+        ...(notes !== undefined && { notes }),
       },
       include: {
         applications: {

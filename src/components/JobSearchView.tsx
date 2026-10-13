@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Tag,
   X,
+  StickyNote,
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
 
@@ -69,6 +70,17 @@ const REASON_PRESETS = [
 ];
 
 /**
+ * Common preset quick-snippets for personal notes.
+ */
+const NOTE_SNIPPET_PRESETS = [
+  "📞 Kontaktperson: ",
+  "📅 Följ upp senast: ",
+  "💬 Intervju / dialog: ",
+  "💰 Löneanspråk: ",
+  "⭐ Prioritet: Hög",
+];
+
+/**
  * Props for the JobSearchView component.
  */
 interface JobSearchViewProps {
@@ -112,6 +124,7 @@ export function JobSearchView({
   const [totalHits, setTotalHits] = useState(0);
   const [loading, setLoading] = useState(false);
   const [savedJobIds, setSavedJobIds] = useState<Record<string, string>>({}); // externalId -> localDbId
+  const [savedJobNotes, setSavedJobNotes] = useState<Record<string, string>>({}); // externalId -> notes
   const [savingId, setSavingId] = useState<string | null>(null);
 
   // Excluded keywords state
@@ -131,6 +144,11 @@ export function JobSearchView({
     REASON_PRESETS[0]
   );
   const [customDismissReason, setCustomDismissReason] = useState("");
+
+  // Note modal state
+  const [noteModalHit, setNoteModalHit] = useState<UnifiedJobHit | null>(null);
+  const [currentNoteText, setCurrentNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   // Daily scan state
   const [scanning, setScanning] = useState(false);
@@ -180,6 +198,15 @@ export function JobSearchView({
         const data = await res.json();
         setHits(data.hits || []);
         setTotalHits(data.total?.value || 0);
+        if (data.hits) {
+          setSavedJobNotes((prev) => {
+            const next = { ...prev };
+            data.hits.forEach((h: UnifiedJobHit) => {
+              if (h.notes) next[h.id] = h.notes;
+            });
+            return next;
+          });
+        }
       }
     } catch (err) {
       console.error("Job search failed:", err);
@@ -220,11 +247,16 @@ export function JobSearchView({
     fetch("/api/jobs")
       .then((r) => r.json())
       .then((jobs: JobItem[]) => {
-        const map: Record<string, string> = {};
+        const idMap: Record<string, string> = {};
+        const noteMap: Record<string, string> = {};
         jobs.forEach((j) => {
-          if (j.externalId && j.status !== "dismissed") map[j.externalId] = j.id;
+          if (j.externalId && j.status !== "dismissed") {
+            idMap[j.externalId] = j.id;
+            if (j.notes) noteMap[j.externalId] = j.notes;
+          }
         });
-        setSavedJobIds(map);
+        setSavedJobIds(idMap);
+        setSavedJobNotes((prev) => ({ ...noteMap, ...prev }));
       })
       .catch(() => {});
 
@@ -416,12 +448,26 @@ export function JobSearchView({
         return;
       }
 
+      const municipality =
+        hit.workplace_address?.municipality ||
+        hit.workplace_address?.city ||
+        "Göteborg";
+
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           externalId: hit.id,
-          url: hit.webpage_url,
+          url: hit.application_details?.url || hit.webpage_url,
+          fallbackData: {
+            title: hit.headline,
+            company: hit.employer.name,
+            location: municipality,
+            workplaceType: hit.workplace_model || "onsite",
+            description: hit.description?.text,
+            publishedAt: hit.publication_date,
+            deadline: hit.application_deadline,
+          },
         }),
       });
 
@@ -437,6 +483,89 @@ export function JobSearchView({
       console.error("Failed to save job:", err);
     } finally {
       setSavingId(null);
+    }
+  };
+
+  // Open note modal for a specific job hit
+  const handleOpenNoteModal = (hit: UnifiedJobHit) => {
+    setNoteModalHit(hit);
+    setCurrentNoteText(savedJobNotes[hit.id] || hit.notes || "");
+  };
+
+  // Save personal note for job listing
+  const handleSaveNote = async () => {
+    if (!noteModalHit) return;
+    setSavingNote(true);
+    try {
+      const noteToSave = currentNoteText.trim();
+      const existingJobId = savedJobIds[noteModalHit.id];
+
+      if (existingJobId) {
+        const res = await fetch(`/api/jobs/${existingJobId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notes: noteToSave || null }),
+        });
+        if (res.ok) {
+          setSavedJobNotes((prev) => {
+            const next = { ...prev };
+            if (noteToSave) next[noteModalHit.id] = noteToSave;
+            else delete next[noteModalHit.id];
+            return next;
+          });
+          setHits((prev) =>
+            prev.map((h) =>
+              h.id === noteModalHit.id ? { ...h, notes: noteToSave || null } : h
+            )
+          );
+        }
+      } else {
+        const municipality =
+          noteModalHit.workplace_address?.municipality ||
+          noteModalHit.workplace_address?.city ||
+          "Göteborg";
+
+        const res = await fetch("/api/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            externalId: noteModalHit.id,
+            url: noteModalHit.application_details?.url || noteModalHit.webpage_url,
+            notes: noteToSave || null,
+            fallbackData: {
+              title: noteModalHit.headline,
+              company: noteModalHit.employer.name,
+              location: municipality,
+              workplaceType: noteModalHit.workplace_model || "onsite",
+              description: noteModalHit.description?.text,
+              publishedAt: noteModalHit.publication_date,
+              deadline: noteModalHit.application_deadline,
+            },
+          }),
+        });
+        if (res.ok) {
+          const saved: JobItem = await res.json();
+          setSavedJobIds((prev) => ({ ...prev, [noteModalHit.id]: saved.id }));
+          setSavedJobNotes((prev) => {
+            const next = { ...prev };
+            if (noteToSave) next[noteModalHit.id] = noteToSave;
+            return next;
+          });
+          setHits((prev) =>
+            prev.map((h) =>
+              h.id === noteModalHit.id
+                ? { ...h, notes: noteToSave || null, savedStatus: "saved" }
+                : h
+            )
+          );
+          onRefreshSavedCount();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save note:", err);
+    } finally {
+      setSavingNote(false);
+      setNoteModalHit(null);
     }
   };
 
@@ -980,6 +1109,19 @@ export function JobSearchView({
                           )}
                         </button>
 
+                        {/* Note button */}
+                        <button
+                          onClick={() => handleOpenNoteModal(hit)}
+                          title={savedJobNotes[hit.id] ? "Visa/redigera minnesanteckning" : "Skriv minnesanteckning"}
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
+                            savedJobNotes[hit.id]
+                              ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                              : "border-neutral-200 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                          }`}
+                        >
+                          <StickyNote className="h-4 w-4" />
+                        </button>
+
                         {/* Save button */}
                         <button
                           onClick={() => handleSaveJob(hit, false)}
@@ -1012,6 +1154,23 @@ export function JobSearchView({
                     )}
                   </div>
                 </div>
+
+                {/* Note preview on card */}
+                {savedJobNotes[hit.id] && (
+                  <div
+                    onClick={() => handleOpenNoteModal(hit)}
+                    className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-200/80 bg-amber-50/70 p-2.5 text-xs text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+                    title="Klicka för att läsa eller ändra din anteckning"
+                  >
+                    <StickyNote className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div className="flex-1">
+                      <span className="font-semibold text-[11px] block text-amber-800 dark:text-amber-300">
+                        Minnesanteckning:
+                      </span>
+                      <p className="line-clamp-2 italic">{savedJobNotes[hit.id]}</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Brief description snippet */}
                 {hit.description?.text && (
@@ -1140,6 +1299,107 @@ export function JobSearchView({
               >
                 Markera inaktuell
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Note Modal Dialog */}
+      {noteModalHit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <StickyNote className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                    Minnesanteckning
+                  </h3>
+                </div>
+                <p className="text-xs text-neutral-500 truncate max-w-[340px] mt-0.5">
+                  {noteModalHit.headline} ({noteModalHit.employer.name})
+                </p>
+              </div>
+              <button
+                onClick={() => setNoteModalHit(null)}
+                className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="mt-3 text-xs text-neutral-600 dark:text-neutral-400">
+              Skriv egna anteckningar för denna annons (t.ex. intryck, kontaktperson, lön eller datum för uppföljning).
+              {!savedJobIds[noteModalHit.id] && (
+                <span className="block mt-1 text-blue-600 dark:text-blue-400 font-medium">
+                  När du sparar anteckningen läggs annonsen automatiskt till i dina sparade jobb i Kanban.
+                </span>
+              )}
+            </p>
+
+            {/* Preset helper chips */}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {NOTE_SNIPPET_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => {
+                    setCurrentNoteText((prev) => (prev ? `${prev}\n${preset}` : preset));
+                  }}
+                  className="rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 transition-colors"
+                >
+                  + {preset.replace(/: $/, "")}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3">
+              <textarea
+                rows={6}
+                value={currentNoteText}
+                onChange={(e) => setCurrentNoteText(e.target.value)}
+                placeholder="Skriv dina minnesanteckningar här..."
+                className="w-full rounded-xl border border-neutral-300 p-3 text-xs leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              {savedJobNotes[noteModalHit.id] ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentNoteText("");
+                  }}
+                  className="text-xs text-red-600 hover:underline cursor-pointer"
+                >
+                  Rensa text
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNoteModalHit(null)}
+                  className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveNote}
+                  disabled={savingNote}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {savingNote ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                  Spara anteckning
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -12,6 +12,8 @@ import {
   Tag,
   Clock,
   X,
+  StickyNote,
+  Check,
 } from "lucide-react";
 import { JobItem, ApplicationStatus } from "@/lib/types";
 
@@ -69,6 +71,17 @@ const REASON_PRESETS = [
 ];
 
 /**
+ * Common preset quick-snippets for personal notes in Kanban tracker.
+ */
+const NOTE_SNIPPETS = [
+  "📞 Kontaktperson: ",
+  "📅 Intervjudatum: ",
+  "💬 Frågor till intervju: ",
+  "💰 Löneanspråk: ",
+  "📌 Att förbereda: ",
+];
+
+/**
  * Visual Kanban application tracking board. Allows moving jobs between stages,
  * reviewing current ATS match scores, launching tailoring, tagging dismissal reasons,
  * and deleting listings.
@@ -84,6 +97,41 @@ export function TrackerView({
   const [dismissModalJobId, setDismissModalJobId] = useState<string | null>(null);
   const [customReason, setCustomReason] = useState("");
   const [selectedPreset, setSelectedPreset] = useState("");
+
+  // Modal state for viewing/editing personal notes
+  const [noteModalJob, setNoteModalJob] = useState<JobItem | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  const handleOpenNoteModal = (job: JobItem) => {
+    setNoteModalJob(job);
+    setNoteText(job.notes || job.applications?.[0]?.notes || "");
+  };
+
+  const handleSaveJobNote = async () => {
+    if (!noteModalJob) return;
+    setSavingNote(true);
+    try {
+      const trimmed = noteText.trim();
+      const res = await fetch(`/api/jobs/${noteModalJob.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: trimmed || null }),
+      });
+      if (res.ok) {
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === noteModalJob.id ? { ...j, notes: trimmed || null } : j
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to save note:", err);
+    } finally {
+      setSavingNote(false);
+      setNoteModalJob(null);
+    }
+  };
 
   const loadJobs = async () => {
     try {
@@ -295,6 +343,25 @@ export function TrackerView({
                       </div>
                     )}
 
+                    {/* Note Box on card */}
+                    {(job.notes || job.applications?.[0]?.notes) && (
+                      <div
+                        onClick={() => handleOpenNoteModal(job)}
+                        className="mt-2 flex cursor-pointer items-start gap-1.5 rounded-lg border border-amber-200/80 bg-amber-50/70 p-2 text-[11px] text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+                        title="Klicka för att läsa eller ändra din anteckning"
+                      >
+                        <StickyNote className="h-3 w-3 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold text-[10px] block text-amber-800 dark:text-amber-300">
+                            Anteckning:
+                          </span>
+                          <p className="line-clamp-2 italic leading-tight">
+                            {job.notes || job.applications?.[0]?.notes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Actions */}
                     <div className="mt-3 pt-2 border-t border-neutral-100 dark:border-neutral-800 flex flex-col gap-1.5">
                       {isDismissedCol ? (
@@ -315,6 +382,16 @@ export function TrackerView({
                           <span>Öppna CV</span>
                         </button>
                       )}
+
+                      {/* Note Button */}
+                      <button
+                        onClick={() => handleOpenNoteModal(job)}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-750 transition-colors"
+                        title="Skriv eller ändra personlig minnesanteckning"
+                      >
+                        <StickyNote className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                        <span>{(job.notes || job.applications?.[0]?.notes) ? "Anteckning" : "+ Anteckning"}</span>
+                      </button>
 
                       {/* Move to stage select */}
                       <select
@@ -424,6 +501,100 @@ export function TrackerView({
               >
                 Markera inaktuell
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Note Modal Dialog */}
+      {noteModalJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <StickyNote className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                    Minnesanteckning
+                  </h3>
+                </div>
+                <p className="text-xs text-neutral-500 truncate max-w-[280px] mt-0.5">
+                  {noteModalJob.title} • {noteModalJob.company}
+                </p>
+              </div>
+              <button
+                onClick={() => setNoteModalJob(null)}
+                className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="mt-3 text-xs text-neutral-600 dark:text-neutral-400">
+              Fyll i dina personliga anteckningar för denna ansökan (t.ex. datum, kontaktperson, intervjufrågor, löneanspråk).
+            </p>
+
+            {/* Quick helper chips */}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {NOTE_SNIPPETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => {
+                    setNoteText((prev) => (prev ? `${prev}\n${preset}` : preset));
+                  }}
+                  className="rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 transition-colors"
+                >
+                  + {preset.replace(/: $/, "")}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3">
+              <textarea
+                rows={6}
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Skriv dina minnesanteckningar här..."
+                className="w-full rounded-xl border border-neutral-300 p-3 text-xs leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              {(noteModalJob.notes || noteModalJob.applications?.[0]?.notes) ? (
+                <button
+                  type="button"
+                  onClick={() => setNoteText("")}
+                  className="text-xs text-red-600 hover:underline cursor-pointer"
+                >
+                  Rensa text
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNoteModalJob(null)}
+                  className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveJobNote}
+                  disabled={savingNote}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {savingNote ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                  Spara anteckning
+                </button>
+              </div>
             </div>
           </div>
         </div>

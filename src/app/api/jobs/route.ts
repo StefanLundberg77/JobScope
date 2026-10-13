@@ -62,7 +62,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { externalId, url, rawText, manualData, status, dismissReason } = body;
+    const { externalId, url, rawText, manualData, status, dismissReason, notes, fallbackData } = body;
 
     let jobData = {
       externalId: externalId || null,
@@ -81,7 +81,32 @@ export async function POST(req: Request) {
 
     if (externalId?.startsWith("linkedin-") || isLinkedInUrl(url || "")) {
       const targetUrlOrId = url || externalId!;
-      const parsed = await fetchLinkedInJobDetails(targetUrlOrId);
+      let parsed = null;
+
+      try {
+        parsed = await fetchLinkedInJobDetails(targetUrlOrId);
+      } catch (err: unknown) {
+        console.warn("fetchLinkedInJobDetails failed, evaluating fallbackData:", err);
+        if (fallbackData) {
+          parsed = {
+            title: fallbackData.title || "LinkedIn Utvecklare",
+            company: fallbackData.company || "LinkedIn Arbetsgivare",
+            location: fallbackData.location || "Göteborg",
+            workplaceType: fallbackData.workplaceType || "onsite",
+            url: url || (externalId ? `https://www.linkedin.com/jobs/view/${externalId.replace(/^linkedin-/, "")}` : null),
+            deadline: fallbackData.deadline ? new Date(fallbackData.deadline) : null,
+            description: fallbackData.description || "Beskrivning hämtad från LinkedIn-sökning. Öppna originallänken för att läsa fullständig annons.",
+            requiredSkills: [],
+            preferredSkills: [],
+          };
+        } else {
+          const message = err instanceof Error ? err.message : "Kunde inte hämta LinkedIn-annons";
+          return NextResponse.json(
+            { error: `${message}. Om LinkedIn begränsar anrop kan du klistra in annonstexten manuellt under 'Klistra in råtext'.` },
+            { status: 429 }
+          );
+        }
+      }
 
       let reqSkills: string[] = [];
       let prefSkills: string[] = [];
@@ -180,12 +205,13 @@ export async function POST(req: Request) {
       job = await prisma.jobListing.findUnique({
         where: { externalId: jobData.externalId },
       });
-      if (job && (status || dismissReason !== undefined)) {
+      if (job && (status || dismissReason !== undefined || notes !== undefined)) {
         job = await prisma.jobListing.update({
           where: { id: job.id },
           data: {
             ...(status && { status }),
             ...(dismissReason !== undefined && { dismissReason }),
+            ...(notes !== undefined && { notes }),
           },
         });
       }
@@ -208,6 +234,7 @@ export async function POST(req: Request) {
           preferredSkills: JSON.stringify(jobData.preferredSkills),
           status: status || "saved",
           dismissReason: dismissReason || null,
+          notes: notes !== undefined ? notes : null,
         },
       });
     }
