@@ -87,12 +87,12 @@ const LABELS = {
  * Common preset quick-templates for personal application notes in TailorStudio.
  */
 const STUDIO_NOTE_TEMPLATES = [
-  "📞 Kontaktperson: ",
-  "📅 Återkoppling senast: ",
-  "💬 Intervjuanteckningar & frågor: ",
-  "💰 Löneanspråk: ",
-  "🎯 Specifika krav att betona: ",
-  "💡 Frågor att ställa till företaget: ",
+  "Kontaktperson: ",
+  "Återkoppling senast: ",
+  "Intervjuanteckningar & frågor: ",
+  "Löneanspråk: ",
+  "Specifika krav att betona: ",
+  "Frågor att ställa till företaget: ",
 ];
 
 /**
@@ -439,7 +439,7 @@ export function TailorStudio({
               }`}
               title="Känner automatiskt av annonsens språk"
             >
-              ⚡ Auto
+              Auto
             </button>
             <button
               type="button"
@@ -606,7 +606,7 @@ export function TailorStudio({
           }`}
         >
           <StickyNote className="h-4 w-4" />
-          <span>Minnesanteckningar</span>
+          <span>Anteckningar</span>
           {notes && (
             <span className="flex h-2 w-2 rounded-full bg-amber-500" title="Anteckningar finns" />
           )}
@@ -666,11 +666,11 @@ export function TailorStudio({
                 <div
                   onClick={() => setActiveTab("notes")}
                   className="flex cursor-pointer items-center justify-between rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
-                  title="Klicka för att öppna fliken Minnesanteckningar"
+                  title="Klicka för att öppna fliken Anteckningar"
                 >
                   <div className="flex items-center gap-2 truncate">
                     <StickyNote className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <span className="font-semibold text-amber-800 dark:text-amber-300">Minnesanteckning:</span>
+                    <span className="font-semibold text-amber-800 dark:text-amber-300">Anteckningar:</span>
                     <span className="truncate italic">{notes}</span>
                   </div>
                   <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300 underline shrink-0 ml-2">Öppna</span>
@@ -884,11 +884,11 @@ export function TailorStudio({
             <div
               onClick={() => setActiveTab("notes")}
               className="flex cursor-pointer items-center justify-between rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
-              title="Klicka för att öppna fliken Minnesanteckningar"
+              title="Klicka för att öppna fliken Anteckningar"
             >
               <div className="flex items-center gap-2 truncate">
                 <StickyNote className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span className="font-semibold text-amber-800 dark:text-amber-300">Minnesanteckning:</span>
+                <span className="font-semibold text-amber-800 dark:text-amber-300">Anteckningar:</span>
                 <span className="truncate italic">{notes}</span>
               </div>
               <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300 underline shrink-0 ml-2">Öppna</span>
@@ -1031,7 +1031,7 @@ export function TailorStudio({
           {/* Practical application advice / Anti-fluff guide */}
           <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-4 text-xs text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-400 space-y-2">
             <h4 className="font-bold text-neutral-800 dark:text-neutral-200">
-              💡 Råd inför utskicket
+              Råd inför utskicket
             </h4>
             <ul className="list-disc pl-4 space-y-1">
               <li>
@@ -1059,7 +1059,7 @@ export function TailorStudio({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                    Minnesanteckningar för ansökan
+                    Anteckningar för ansökan
                   </h3>
                   <p className="text-xs text-neutral-500">
                     Egna noteringar om kontaktpersoner, återkoppling, intervjufrågor och löneanspråk för {job.title} ({job.company}).
@@ -1118,7 +1118,7 @@ export function TailorStudio({
                 rows={14}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Skriv dina minnesanteckningar här...&#10;&#10;T.ex:&#10;• Vem har du pratat med? (namn, mejl, telefon, LinkedIn)&#10;• Vad betonade de i annonsen eller under samtalet?&#10;• Datum för när du skickade in och planerat datum för uppföljning&#10;• Frågor du vill ställa under intervjun&#10;• Löneanspråk och förmåner"
+                placeholder="Skriv dina anteckningar här...&#10;&#10;T.ex:&#10;• Vem har du pratat med? (namn, mejl, telefon, LinkedIn)&#10;• Vad betonade de i annonsen eller under samtalet?&#10;• Datum för när du skickade in och planerat datum för uppföljning&#10;• Frågor du vill ställa under intervjun&#10;• Löneanspråk och förmåner"
                 className="w-full rounded-xl border border-neutral-300 p-4 text-sm leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white font-sans"
               />
             </div>

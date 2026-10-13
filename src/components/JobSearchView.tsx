@@ -22,6 +22,7 @@ import {
   Tag,
   X,
   StickyNote,
+  Gauge,
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
 
@@ -73,11 +74,11 @@ const REASON_PRESETS = [
  * Common preset quick-snippets for personal notes.
  */
 const NOTE_SNIPPET_PRESETS = [
-  "📞 Kontaktperson: ",
-  "📅 Följ upp senast: ",
-  "💬 Intervju / dialog: ",
-  "💰 Löneanspråk: ",
-  "⭐ Prioritet: Hög",
+  "Kontaktperson: ",
+  "Följ upp senast: ",
+  "Intervju / dialog: ",
+  "Löneanspråk: ",
+  "Prioritet: Hög",
 ];
 
 /**
@@ -125,7 +126,9 @@ export function JobSearchView({
   const [loading, setLoading] = useState(false);
   const [savedJobIds, setSavedJobIds] = useState<Record<string, string>>({}); // externalId -> localDbId
   const [savedJobNotes, setSavedJobNotes] = useState<Record<string, string>>({}); // externalId -> notes
+  const [savedMatchScores, setSavedMatchScores] = useState<Record<string, number>>({}); // externalId -> matchScore
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [matchingId, setMatchingId] = useState<string | null>(null);
 
   // Excluded keywords state
   const [excludeWords, setExcludeWords] = useState<string[]>(["Senior", "Erfaren"]);
@@ -249,14 +252,19 @@ export function JobSearchView({
       .then((jobs: JobItem[]) => {
         const idMap: Record<string, string> = {};
         const noteMap: Record<string, string> = {};
+        const scoreMap: Record<string, number> = {};
         jobs.forEach((j) => {
           if (j.externalId && j.status !== "dismissed") {
             idMap[j.externalId] = j.id;
             if (j.notes) noteMap[j.externalId] = j.notes;
+            if (j.matchScore !== null && j.matchScore !== undefined) {
+              scoreMap[j.externalId] = j.matchScore;
+            }
           }
         });
         setSavedJobIds(idMap);
         setSavedJobNotes((prev) => ({ ...noteMap, ...prev }));
+        setSavedMatchScores((prev) => ({ ...scoreMap, ...prev }));
       })
       .catch(() => {});
 
@@ -438,49 +446,102 @@ export function JobSearchView({
     }
   };
 
-  // Save job and optionally navigate to tailor studio
-  const handleSaveJob = async (hit: UnifiedJobHit, openStudio = false) => {
+  // Core helper to persist job record to SQLite, optionally triggering ATS match
+  const saveJobRecord = async (hit: UnifiedJobHit, runMatchAnalysis = false): Promise<JobItem | null> => {
+    const municipality =
+      hit.workplace_address?.municipality ||
+      hit.workplace_address?.city ||
+      "Göteborg";
+
+    const res = await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        externalId: hit.id,
+        url: hit.application_details?.url || hit.webpage_url,
+        runMatchAnalysis,
+        fallbackData: {
+          title: hit.headline,
+          company: hit.employer.name,
+          location: municipality,
+          workplaceType: hit.workplace_model || "onsite",
+          description: hit.description?.text,
+          publishedAt: hit.publication_date,
+          deadline: hit.application_deadline,
+        },
+      }),
+    });
+
+    if (res.ok) {
+      const saved: JobItem = await res.json();
+      setSavedJobIds((prev) => ({ ...prev, [hit.id]: saved.id }));
+      if (saved.matchScore !== null && saved.matchScore !== undefined) {
+        setSavedMatchScores((prev) => ({ ...prev, [hit.id]: saved.matchScore! }));
+      }
+      onRefreshSavedCount();
+      return saved;
+    }
+    return null;
+  };
+
+  // 1. Spara: Adds job to applications database WITHOUT any AI call (0 tokens)
+  const handleSaveJob = async (hit: UnifiedJobHit) => {
+    if (savedJobIds[hit.id]) return; // Already saved
     setSavingId(hit.id);
     try {
-      // If already saved, just open studio
-      if (savedJobIds[hit.id]) {
-        if (openStudio) onOpenTailorStudio(savedJobIds[hit.id]);
+      await saveJobRecord(hit, false);
+    } catch (err) {
+      console.error("Failed to save job:", err);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  // 2. Matchning: Runs ATS match analysis via Gemini and stores score/analysis
+  const handleRunMatch = async (hit: UnifiedJobHit) => {
+    setMatchingId(hit.id);
+    try {
+      const existingId = savedJobIds[hit.id];
+      if (existingId) {
+        // Already in database, trigger on-demand match endpoint
+        const res = await fetch(`/api/jobs/${existingId}/match`, {
+          method: "POST",
+        });
+        if (res.ok) {
+          const updated: JobItem = await res.json();
+          if (updated.matchScore !== null && updated.matchScore !== undefined) {
+            setSavedMatchScores((prev) => ({ ...prev, [hit.id]: updated.matchScore! }));
+          }
+          onRefreshSavedCount();
+        }
+      } else {
+        // Not yet saved, save with runMatchAnalysis: true
+        await saveJobRecord(hit, true);
+      }
+    } catch (err) {
+      console.error("Failed to run ATS match:", err);
+    } finally {
+      setMatchingId(null);
+    }
+  };
+
+  // 3. Optimera: Saves job without previous ATS analysis and opens TailorStudio directly
+  const handleOptimizeJob = async (hit: UnifiedJobHit) => {
+    setSavingId(hit.id);
+    try {
+      const existingId = savedJobIds[hit.id];
+      if (existingId) {
+        onOpenTailorStudio(existingId);
         return;
       }
 
-      const municipality =
-        hit.workplace_address?.municipality ||
-        hit.workplace_address?.city ||
-        "Göteborg";
-
-      const res = await fetch("/api/jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          externalId: hit.id,
-          url: hit.application_details?.url || hit.webpage_url,
-          fallbackData: {
-            title: hit.headline,
-            company: hit.employer.name,
-            location: municipality,
-            workplaceType: hit.workplace_model || "onsite",
-            description: hit.description?.text,
-            publishedAt: hit.publication_date,
-            deadline: hit.application_deadline,
-          },
-        }),
-      });
-
-      if (res.ok) {
-        const saved: JobItem = await res.json();
-        setSavedJobIds((prev) => ({ ...prev, [hit.id]: saved.id }));
-        onRefreshSavedCount();
-        if (openStudio) {
-          onOpenTailorStudio(saved.id);
-        }
+      // Save without running match analysis (TailorStudio will handle full optimization)
+      const saved = await saveJobRecord(hit, false);
+      if (saved) {
+        onOpenTailorStudio(saved.id);
       }
     } catch (err) {
-      console.error("Failed to save job:", err);
+      console.error("Failed to optimize job:", err);
     } finally {
       setSavingId(null);
     }
@@ -583,16 +644,16 @@ export function JobSearchView({
       const data = await res.json();
       if (res.ok) {
         setScanMessage(
-          `✅ Klart! Sökte av ${data.scannedTotal} annonser, sparade ${data.savedCount} relevanta i Kanban-tavlan.`
+          `Klart! Sökte av ${data.scannedTotal} annonser, sparade ${data.savedCount} relevanta i Kanban-tavlan.`
         );
         onRefreshSavedCount();
         handleSearch();
       } else {
-        setScanMessage(`❌ Fel: ${data.error || "Kunde inte genomföra sökningen"}`);
+        setScanMessage(`Fel: ${data.error || "Kunde inte genomföra sökningen"}`);
       }
     } catch (err) {
       console.error("Daily scan error:", err);
-      setScanMessage("❌ Nätverksfel vid automatisk sökning");
+      setScanMessage("Nätverksfel vid automatisk sökning");
     } finally {
       setScanning(false);
       setTimeout(() => setScanMessage(null), 8000);
@@ -988,6 +1049,9 @@ export function JobSearchView({
           {hits.map((hit) => {
             const isSaved = Boolean(savedJobIds[hit.id]);
             const isSaving = savingId === hit.id;
+            const isMatching = matchingId === hit.id;
+            const score = savedMatchScores[hit.id];
+            const hasScore = score !== undefined && score !== null;
             const isBlocked = blockedJobIds.has(hit.id) || Boolean(hit.isBlocked);
             const isBlocking = blockingId === hit.id;
             const municipality =
@@ -1112,7 +1176,7 @@ export function JobSearchView({
                         {/* Note button */}
                         <button
                           onClick={() => handleOpenNoteModal(hit)}
-                          title={savedJobNotes[hit.id] ? "Visa/redigera minnesanteckning" : "Skriv minnesanteckning"}
+                          title="Anteckningar"
                           className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
                             savedJobNotes[hit.id]
                               ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
@@ -1122,55 +1186,76 @@ export function JobSearchView({
                           <StickyNote className="h-4 w-4" />
                         </button>
 
-                        {/* Save button */}
+                        {/* 1. Spara button */}
                         <button
-                          onClick={() => handleSaveJob(hit, false)}
+                          onClick={() => handleSaveJob(hit)}
                           disabled={isSaving}
-                          title={isSaved ? "Sparad i din lista" : "Spara annons"}
-                          className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
+                          title={isSaved ? "Sparad i dina ansökningar" : "Spara till ansökningar (utan AI-anrop)"}
+                          className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
                             isSaved
-                              ? "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
+                              ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
                               : "border-neutral-200 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
                           }`}
                         >
                           {isSaving ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : isSaved ? (
-                            <Check className="h-4 w-4" />
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
                           ) : (
-                            <Bookmark className="h-4 w-4" />
+                            <Bookmark className="h-3.5 w-3.5" />
+                          )}
+                          <span>{isSaved ? "Sparad" : "Spara"}</span>
+                        </button>
+
+                        {/* 2. Matchning (ATS) button */}
+                        <button
+                          onClick={() => handleRunMatch(hit)}
+                          disabled={isMatching}
+                          title="Kör ATS-matchningsanalys med Gemini och spara till ansökningar"
+                          className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                            hasScore
+                              ? score >= 75
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold"
+                                : score >= 50
+                                ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 font-semibold"
+                                : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 font-semibold"
+                              : "border-neutral-200 text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                          }`}
+                        >
+                          {isMatching ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                              <span>Matchar...</span>
+                            </>
+                          ) : hasScore ? (
+                            <>
+                              <Gauge className="h-3.5 w-3.5 shrink-0" />
+                              <span>{score}% Match</span>
+                            </>
+                          ) : (
+                            <>
+                              <Gauge className="h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
+                              <span>Matchning</span>
+                            </>
                           )}
                         </button>
 
+                        {/* 3. Optimera button */}
                         <button
-                          onClick={() => handleSaveJob(hit, true)}
-                          disabled={isSaving}
-                          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
+                          onClick={() => handleOptimizeJob(hit)}
+                          disabled={isSaving || isMatching}
+                          title="Öppna optimeringsläget direkt för att skräddarsy CV och brev"
+                          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-blue-700 transition-colors"
                         >
                           <Sparkles className="h-3.5 w-3.5" />
-                          Optimera CV & Brev
+                          <span>Optimera</span>
                         </button>
                       </>
                     )}
                   </div>
                 </div>
 
-                {/* Note preview on card */}
-                {savedJobNotes[hit.id] && (
-                  <div
-                    onClick={() => handleOpenNoteModal(hit)}
-                    className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-200/80 bg-amber-50/70 p-2.5 text-xs text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
-                    title="Klicka för att läsa eller ändra din anteckning"
-                  >
-                    <StickyNote className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <div className="flex-1">
-                      <span className="font-semibold text-[11px] block text-amber-800 dark:text-amber-300">
-                        Minnesanteckning:
-                      </span>
-                      <p className="line-clamp-2 italic">{savedJobNotes[hit.id]}</p>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Brief description snippet */}
                 {hit.description?.text && (
@@ -1313,7 +1398,7 @@ export function JobSearchView({
                 <div className="flex items-center gap-2">
                   <StickyNote className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                    Minnesanteckning
+                    Anteckningar
                   </h3>
                 </div>
                 <p className="text-xs text-neutral-500 truncate max-w-[340px] mt-0.5">
@@ -1358,7 +1443,7 @@ export function JobSearchView({
                 rows={6}
                 value={currentNoteText}
                 onChange={(e) => setCurrentNoteText(e.target.value)}
-                placeholder="Skriv dina minnesanteckningar här..."
+                placeholder="Skriv dina anteckningar här..."
                 className="w-full rounded-xl border border-neutral-300 p-3 text-xs leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
               />
             </div>
@@ -1397,7 +1482,7 @@ export function JobSearchView({
                   ) : (
                     <Check className="h-3.5 w-3.5" />
                   )}
-                  Spara anteckning
+                  Spara
                 </button>
               </div>
             </div>

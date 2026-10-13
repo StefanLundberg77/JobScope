@@ -327,10 +327,10 @@ export function SettingsView() {
           <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600 dark:bg-neutral-800/60 dark:text-neutral-300 border border-neutral-100 dark:border-neutral-800 space-y-1.5">
             <div className="flex items-center gap-1.5 font-semibold text-neutral-800 dark:text-neutral-200">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span>Automatisk intelligent fallback är aktiverad:</span>
+              <span>Kvalitetsfokuserad fallback och skydd:</span>
             </div>
             <p className="leading-relaxed">
-              Om din valda modell når dygnsgränsen (20 anrop/dygn på gratisnivån) eller drabbas av tillfällig hög belastning (503 Service Unavailable), växlar JobScope automatiskt över till <strong>Gemini 3.5 Flash-Lite</strong> i bakgrunden så att dina analyser och skräddarsydda CV:n slutförs utan avbrott.
+              JobScope växlar uteslutande mellan toppmodellerna <strong>Gemini 3.8 Flash</strong> och <strong>Gemini 3.6 Flash</strong> för att garantera maximal precision och anti-fluff i dina brev och CV:n. Vid tillfälliga 503-spikar (high demand) görs automatiska korta återförsök med paus. Du kan när som helst välja <strong>3.5 Flash-Lite</strong> ovan om du medvetet vill köra en separat reservkvot.
             </p>
           </div>
         </div>

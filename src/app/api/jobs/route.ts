@@ -62,7 +62,17 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { externalId, url, rawText, manualData, status, dismissReason, notes, fallbackData } = body;
+    const {
+      externalId,
+      url,
+      rawText,
+      manualData,
+      status,
+      dismissReason,
+      notes,
+      fallbackData,
+      runMatchAnalysis,
+    } = body;
 
     let jobData = {
       externalId: externalId || null,
@@ -239,9 +249,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // Attempt automatic quick match analysis if Gemini API key is configured
+    // Execute ATS match analysis ONLY if explicitly requested via runMatchAnalysis
     const apiKey = await getGeminiApiKey();
-    if (apiKey && !job.matchScore) {
+    if (runMatchAnalysis && apiKey) {
       try {
         const profileRecord = await prisma.masterProfile.findFirst();
         if (profileRecord && profileRecord.title) {

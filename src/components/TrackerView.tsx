@@ -14,6 +14,7 @@ import {
   X,
   StickyNote,
   Check,
+  Gauge,
 } from "lucide-react";
 import { JobItem, ApplicationStatus } from "@/lib/types";
 
@@ -74,11 +75,11 @@ const REASON_PRESETS = [
  * Common preset quick-snippets for personal notes in Kanban tracker.
  */
 const NOTE_SNIPPETS = [
-  "📞 Kontaktperson: ",
-  "📅 Intervjudatum: ",
-  "💬 Frågor till intervju: ",
-  "💰 Löneanspråk: ",
-  "📌 Att förbereda: ",
+  "Kontaktperson: ",
+  "Intervjudatum: ",
+  "Frågor till intervju: ",
+  "Löneanspråk: ",
+  "Att förbereda: ",
 ];
 
 /**
@@ -102,10 +103,38 @@ export function TrackerView({
   const [noteModalJob, setNoteModalJob] = useState<JobItem | null>(null);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [matchingJobId, setMatchingJobId] = useState<string | null>(null);
 
   const handleOpenNoteModal = (job: JobItem) => {
     setNoteModalJob(job);
     setNoteText(job.notes || job.applications?.[0]?.notes || "");
+  };
+
+  const handleRunMatch = async (jobId: string) => {
+    setMatchingJobId(jobId);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/match`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === jobId
+              ? {
+                  ...j,
+                  matchScore: updated.matchScore,
+                  matchAnalysis: updated.matchAnalysis,
+                }
+              : j
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to run match in TrackerView:", err);
+    } finally {
+      setMatchingJobId(null);
+    }
   };
 
   const handleSaveJobNote = async () => {
@@ -343,25 +372,6 @@ export function TrackerView({
                       </div>
                     )}
 
-                    {/* Note Box on card */}
-                    {(job.notes || job.applications?.[0]?.notes) && (
-                      <div
-                        onClick={() => handleOpenNoteModal(job)}
-                        className="mt-2 flex cursor-pointer items-start gap-1.5 rounded-lg border border-amber-200/80 bg-amber-50/70 p-2 text-[11px] text-amber-900 transition-colors hover:border-amber-300 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
-                        title="Klicka för att läsa eller ändra din anteckning"
-                      >
-                        <StickyNote className="h-3 w-3 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                        <div className="flex-1 min-w-0">
-                          <span className="font-semibold text-[10px] block text-amber-800 dark:text-amber-300">
-                            Anteckning:
-                          </span>
-                          <p className="line-clamp-2 italic leading-tight">
-                            {job.notes || job.applications?.[0]?.notes}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Actions */}
                     <div className="mt-3 pt-2 border-t border-neutral-100 dark:border-neutral-800 flex flex-col gap-1.5">
                       {isDismissedCol ? (
@@ -374,24 +384,56 @@ export function TrackerView({
                           <span>Återaktivera</span>
                         </button>
                       ) : (
-                        <button
-                          onClick={() => onOpenTailorStudio(job.id)}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-blue-200 bg-blue-50/70 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60 transition-colors"
-                        >
-                          <FileText className="h-3 w-3" />
-                          <span>Öppna CV</span>
-                        </button>
+                        <>
+                          {job.matchScore === null || job.matchScore === undefined ? (
+                            <button
+                              onClick={() => handleRunMatch(job.id)}
+                              disabled={matchingJobId === job.id}
+                              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 transition-colors"
+                              title="Kör ATS-matchningsanalys med Gemini"
+                            >
+                              {matchingJobId === job.id ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                                  <span>Matchar...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Gauge className="h-3 w-3 text-neutral-500" />
+                                  <span>Kör Matchning</span>
+                                </>
+                              )}
+                            </button>
+                          ) : null}
+
+                          <button
+                            onClick={() => onOpenTailorStudio(job.id)}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-blue-200 bg-blue-50/70 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60 transition-colors"
+                          >
+                            <FileText className="h-3 w-3" />
+                            <span>Öppna CV</span>
+                          </button>
+                        </>
                       )}
 
                       {/* Note Button */}
-                      <button
-                        onClick={() => handleOpenNoteModal(job)}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-750 transition-colors"
-                        title="Skriv eller ändra personlig minnesanteckning"
-                      >
-                        <StickyNote className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                        <span>{(job.notes || job.applications?.[0]?.notes) ? "Anteckning" : "+ Anteckning"}</span>
-                      </button>
+                      {(() => {
+                        const hasNote = Boolean(job.notes || job.applications?.[0]?.notes);
+                        return (
+                          <button
+                            onClick={() => handleOpenNoteModal(job)}
+                            className={`flex w-full items-center justify-center gap-1.5 rounded-md border py-1 text-[11px] font-medium transition-colors ${
+                              hasNote
+                                ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 font-semibold"
+                                : "border-neutral-200 bg-neutral-50/70 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-750"
+                            }`}
+                            title="Anteckningar"
+                          >
+                            <StickyNote className={`h-3 w-3 ${hasNote ? "text-amber-600 dark:text-amber-400" : "text-neutral-500 dark:text-neutral-400"}`} />
+                            <span>Anteckningar</span>
+                          </button>
+                        );
+                      })()}
 
                       {/* Move to stage select */}
                       <select
@@ -515,7 +557,7 @@ export function TrackerView({
                 <div className="flex items-center gap-2">
                   <StickyNote className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                    Minnesanteckning
+                    Anteckningar
                   </h3>
                 </div>
                 <p className="text-xs text-neutral-500 truncate max-w-[280px] mt-0.5">
@@ -555,7 +597,7 @@ export function TrackerView({
                 rows={6}
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Skriv dina minnesanteckningar här..."
+                placeholder="Skriv dina anteckningar här..."
                 className="w-full rounded-xl border border-neutral-300 p-3 text-xs leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
               />
             </div>
@@ -592,7 +634,7 @@ export function TrackerView({
                   ) : (
                     <Check className="h-3.5 w-3.5" />
                   )}
-                  Spara anteckning
+                  Spara
                 </button>
               </div>
             </div>

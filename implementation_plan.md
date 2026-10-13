@@ -1,107 +1,44 @@
-# Implementation Plan: Egna Anteckningar (Minnesanteckningar) i Jobbsökkort, Kanban & Ansökningar
+# Implementation Plan: Tydlig uppdelning av jobbåtgärder och kvalitetsfokuserad Gemini-fallback
 
-## 1. Bakgrund & Behov
-Användaren önskar en funktion för att kunna föra egna anteckningar / minnesanteckningar på:
-1. **Jobbsökkorten** (`JobSearchView`) – t.ex. första intryck, kontaktperson, lön, eller noteringar direkt vid sökning. Om man sparar en anteckning på en osökt annons sparas annonsen automatiskt till databasen med anteckningen.
-2. **Kanban-korten** (`TrackerView`) – snabb överblick och redigering av minnesanteckningar direkt på Kanban-korten i alla faser (Sparad, Optimerad, Ansökt, Intervju, etc.).
-3. **Ansökningarna / TailorStudio** (`TailorStudio`) – en dedikerad flik för minnesanteckningar och förberedelser (kontaktpersoner, intervjufrågor, datum för återkoppling, löneanspråk).
+## 1. Bakgrund & Problemformulering
+1. **Redundanta anrop**: Tidigare körde systemet en automatisk snabb-ATS-matchning via Gemini (`analyzeJobMatchWithAI`) varje gång en annons sparades via `POST /api/jobs`. När en användare klickade "Optimera CV & Brev" i sökvyn kördes två separata AI-anrop mot samma jobb (matchning + fullständig optimering som redan räknar ut matchning).
+2. **Kvalitet vs tyst nedgradering**: Istället för att tyst nedgradera personliga brev och CV-texter till enklare Lite-modeller vid tillfälliga 503-spikar eller dygnsgränser på Google, ska systemet prioritera full textkvalitet och anti-fluff genom att uteslutande alternera mellan toppmodellerna (`gemini-3.8-flash` ⇄ `gemini-3.6-flash`), göra automatiska retries vid 503-spikar, och ge ett ärligt felmeddelande om båda är otillgängliga.
 
 ---
 
-## 2. Arkitektur & Datamodell
+## 2. Genomförda Ändringar
 
-### A. Prisma Schema (`prisma/schema.prisma`)
-- Lägg till fältet `notes String?` på modellen `JobListing`.
-- Notera: `TailoredApplication` har redan `notes String?`.
-- Kör `npx prisma db push` för att uppdatera SQLite-databasen och regenerera Prisma-klienten i `src/generated/prisma`.
+### A. Uppdelade jobbåtgärder i sökvyn (`JobSearchView.tsx`)
+1. **Knapp 1: "Spara" (`Bookmark`)**:
+   - Sparar annonsen till användarens ansökningar (`JobListing` med `status: "saved"`).
+   - **0 AI-anrop**: Ingen ATS-matchning och ingen optimering körs. Sparar 100% av kvoten.
+   - Visar "Sparad" med grön bock när jobbet är sparat.
+2. **Knapp 2: "Matchning" (`Gauge` / Procent-badge)**:
+   - Sparar annonsen om inte sparad och kör **enbart ATS-matchningsanalys** (`analyzeJobMatchWithAI`).
+   - Visar spinner under analys och visar sedan t.ex. "74% Match" direkt på kortet.
+   - Förbrukar exakt **1 AI-anrop**.
+3. **Knapp 3: "Optimera" (`Sparkles` - Blå primärknapp)**:
+   - Sparar annonsen direkt om inte sparad (utan föregående ATS-anrop).
+   - Öppnar `TailorStudio` direkt.
+   - Inne i `TailorStudio` körs optimeringen (CV, brev, mejl och inbyggd matchning) i **1 samlat AI-anrop**.
 
-### B. Domäntyper (`src/lib/types.ts`)
-- Uppdatera `JobItem`:
-  ```ts
-  notes?: string | null;
-  ```
-- Uppdatera `UnifiedJobHit`:
-  ```ts
-  notes?: string | null;
-  ```
+### B. Kör ATS-matchning i efterhand i Kanban (`TrackerView.tsx`)
+- För sparade jobb som sparats utan matchning (`job.matchScore == null`) visas en knapp `"Kör Matchning"` på kortet i Kanban-tavlan så att användaren kan köra ATS-analys i efterhand med ett klick.
 
----
+### C. Backend API-stöd
+1. **`POST /api/jobs` (`src/app/api/jobs/route.ts`)**:
+   - Styrs av flaggan `runMatchAnalysis?: boolean` (standard `false`).
+   - `Spara` och `Optimera` skickar `false` (0 AI-anrop). `Matchning` skickar `true`.
+2. **`POST /api/jobs/[id]/match` (`src/app/api/jobs/[id]/match/route.ts`)**:
+   - Dedikerad endpoint för att köra ATS-matchningsanalys på ett befintligt sparat jobb.
 
-## 3. Backend & API-ändringar
-
-### A. `src/app/api/jobs/route.ts`
-- **POST**: Tillåt `notes` i request payload. Spara `notes` på `JobListing` vid skapande/uppdatering.
-- **GET**: Returnerar automatiskt `notes` på alla `JobListing`-objekt.
-
-### B. `src/app/api/jobs/[id]/route.ts`
-- **PATCH**: Tillåt uppdatering av `notes` direkt på `JobListing`:
-  ```ts
-  const updated = await prisma.jobListing.update({
-    where: { id },
-    data: {
-      ...(status && { status }),
-      ...(dismissReason !== undefined && { dismissReason }),
-      ...(notes !== undefined && { notes }),
-    },
-    ...
-  });
-  ```
-  Synkronisera även med `tailoredApplication.notes` om en ansökan finns.
-
-### C. `src/app/api/jobs/[id]/tailor/route.ts`
-- **PUT**: När användaren sparar i TailorStudio, uppdatera både `TailoredApplication.notes` och `JobListing.notes` så att anteckningarna alltid är synkroniserade mellan korten och ansökan.
-
-### D. `src/app/api/jobs/search/route.ts`
-- I `savedJobs`-queryn: inkludera `notes: true`.
-- Mappa `notes` på respektive träff (`UnifiedJobHit`) så att jobbsöket direkt vet om en annons redan har en minnesanteckning.
+### D. Kvalitetsfokuserad Fallback i `src/lib/gemini.ts`
+1. Alternerar uteslutande mellan toppmodellerna: **`gemini-3.8-flash` ⇄ `gemini-3.6-flash`** (såvida inte användaren uttryckligen valt en Lite-modell i Inställningar).
+2. Automatisk exponential backoff / retry (1.5 s, sedan 2.5 s) vid tillfälliga 503-spikar ("high demand") på samma modell innan den växlar till den andra toppmodellen.
+3. Ärliga, informativa felmeddelanden vid 503 och 429-dygnsgräns istället för tyst nedgradering av textkvaliteten.
 
 ---
 
-## 4. Frontend & UI-komponenter
-
-### A. Jobbsökkort (`src/components/JobSearchView.tsx`)
-1. **Knapp & Visning på kortet**:
-   - Lägg till en anteckningsknapp (`StickyNote`-ikon) bland åtgärderna på varje kort.
-   - Om annonsen redan har en anteckning: visa en diskret, snygg anteckningsruta/bricka på kortet med en text-förhandsgranskning.
-2. **Antecknings-modal**:
-   - Modal för att läsa och redigera anteckningen bekvämt.
-   - Snabbvals-chips för att snabbt lägga till vanliga sektioner (t.ex. `📞 Kontaktperson:`, `📅 Uppföljning:`, `💰 Löneanspråk:`).
-   - Om annonsen inte var sparad sedan tidigare: när användaren sparar anteckningen sparas annonsen automatiskt till databasen (`POST /api/jobs`) med status `"saved"` och anteckningen kopplad.
-   - Om annonsen redan är sparad: sparar via `PATCH /api/jobs/[id]` och uppdaterar UI direkt.
-
-### B. Kanban Tracker-kort (`src/components/TrackerView.tsx`)
-1. **Visning på Kanban-kortet**:
-   - Om `job.notes` finns: visa en gul/neutral notisruta (`StickyNote`-ikon, kursiv text, max 2 rader) på kortet.
-   - En tydlig klickbar knapp för att öppna anteckningseditorn.
-   - Om ingen anteckning finns: en diskret `+ Anteckning`-knapp.
-2. **Antecknings-modal**:
-   - Rymlig modal för att skriva och redigera minnesanteckningar utan att lämna Kanban-tavlan.
-   - Snabbvals-chips (`📞 Kontaktperson:`, `📅 Intervjudatum:`, `💬 Frågor till intervju:`, `💰 Löneanspråk:`).
-   - "Spara anteckning", "Rensa anteckning" och "Avbryt".
-   - Uppdaterar lokalt tillstånd och databasen omedelbart.
-
-### C. TailorStudio / Ansökningsvy (`src/components/TailorStudio.tsx`)
-1. **Ny flik i menyn**:
-   - Lägg till fliken **"Minnesanteckningar"** (`notes`) med `StickyNote`-ikon.
-2. **Innehåll i fliken**:
-   - Fullskärms/rymlig anteckningsyta anpassad för ansökningsprocessen.
-   - Mallar/hjälpknappar för intervjuförberedelser, referenser, kontaktuppgifter och löneanspråk.
-   - "Spara anteckningar"-knapp med grön bekräftelseanimering (`CheckCircle2`).
-   - Synkronisering till både `TailoredApplication` och `JobListing`.
-3. **Snabb-indikator i brevhuvudet**:
-   - En snabbknapp/badge i headern som visar om det finns sparade anteckningar för annonsen, så att användaren enkelt kan snegla på sina anteckningar under tiden man justerar CV eller brev.
-
----
-
-## 5. Verifieringsplan
-1. **Databasmigrering**: Verifiera att `npx prisma db push` körs utan fel och att `notes`-kolumnen skapas.
-2. **TypeScript & Byggtest**: Kör `npm run build` för att säkerställa 0 typfel.
-3. **Funktionstest i Jobbsök**:
-   - Testa att skriva en anteckning på ett osökt kort -> Kontrollera att annonsen sparas och anteckningen visas.
-   - Testa att redigera och ta bort anteckning på ett sparat kort.
-4. **Funktionstest i Kanban**:
-   - Kontrollera att anteckningen syns på Kanban-kortet.
-   - Klicka för att redigera anteckning i modalen -> Spara -> Verifiera att kortet uppdateras.
-5. **Funktionstest i TailorStudio**:
-   - Öppna fliken "Minnesanteckningar" -> Kontrollera att befintlig anteckning laddas.
-   - Redigera och spara -> Kontrollera att ändringen slår igenom i både Kanban och Jobbsök.
+## 3. Verifiering & Testning
+1. Kontrollera att `npm run build` bygger utan fel med TypeScript och Turbopack.
+2. Verifiera att fallback-logiken växlar mellan 3.8 och 3.6 och gör retries på 503.

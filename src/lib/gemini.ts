@@ -75,9 +75,10 @@ export async function getActiveAiModel(preferredModel?: string): Promise<string>
 }
 
 /**
- * Executes a generateContent call with automatic fallback across compatible models
- * (e.g. preferredModel -> gemini-3.6-flash -> gemini-3.8-flash -> gemini-3.5-flash-lite -> gemini-3.1-flash-lite)
- * if Google's endpoint returns a 503 high demand spike, 429 quota exhaustion, or temporary network error.
+ * Executes a generateContent call with quality-first fallback between flagship models
+ * (gemini-3.8-flash <-> gemini-3.6-flash), performing automated retries on 503 high-demand
+ * spikes rather than silently downgrading generated text quality to Lite models.
+ * If the user explicitly configured a Lite model in settings, that selection is respected.
  */
 export async function generateContentWithFallback(
   genAI: GoogleGenerativeAI,
@@ -88,55 +89,89 @@ export async function generateContentWithFallback(
     temperature?: number;
   }
 ) {
-  const candidateModels = Array.from(
-    new Set([
-      preferredModel,
-      "gemini-3.6-flash",
-      "gemini-3.8-flash",
-      "gemini-3.5-flash-lite",
-      "gemini-3.1-flash-lite",
-    ])
-  );
+  // If user explicitly configured a Lite model in Settings, respect that choice.
+  // Otherwise, enforce top-tier quality by strictly alternating between Gemini 3.8 Flash and Gemini 3.6 Flash.
+  const isExplicitLite = preferredModel.toLowerCase().includes("lite");
+  const candidateModels = isExplicitLite
+    ? Array.from(new Set([preferredModel, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]))
+    : Array.from(
+        new Set([
+          preferredModel,
+          preferredModel === "gemini-3.8-flash" ? "gemini-3.6-flash" : "gemini-3.8-flash",
+        ])
+      );
 
   let lastError: any;
-  for (let i = 0; i < candidateModels.length; i++) {
-    const modelName = candidateModels[i];
-    const isLastModel = i === candidateModels.length - 1;
+  let encountered503 = false;
+  let encounteredQuota = false;
 
-    try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig,
-      });
-      return await model.generateContent(contents);
-    } catch (err: any) {
-      lastError = err;
-      const errorMessage = String(err?.message || "");
-      const isTransientOrQuota =
-        err?.status === 503 ||
-        err?.status === 429 ||
-        err?.status === 404 ||
-        errorMessage.includes("503") ||
-        errorMessage.includes("429") ||
-        errorMessage.includes("404") ||
-        errorMessage.includes("high demand") ||
-        errorMessage.includes("quota") ||
-        errorMessage.includes("Quota exceeded") ||
-        errorMessage.includes("Resource has been exhausted") ||
-        errorMessage.includes("fetch failed");
+  for (let mIndex = 0; mIndex < candidateModels.length; mIndex++) {
+    const modelName = candidateModels[mIndex];
+    const isLastModel = mIndex === candidateModels.length - 1;
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig,
+    });
 
-      if (isTransientOrQuota && !isLastModel) {
-        console.warn(
-          `[JobScope Gemini] Model ${modelName} returned temporary error or quota limit (${err.message}). Retrying with fallback model ${candidateModels[i + 1]}...`
-        );
-        if (err?.status === 503 || errorMessage.includes("503") || errorMessage.includes("high demand")) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+    // Try up to 2 retries for transient 503 high-demand spikes on the same model
+    const MAX_RETRIES = 2;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await model.generateContent(contents);
+      } catch (err: any) {
+        lastError = err;
+        const errorMessage = String(err?.message || "");
+        const is503 =
+          err?.status === 503 ||
+          errorMessage.includes("503") ||
+          errorMessage.includes("high demand") ||
+          errorMessage.includes("Service Unavailable");
+        const isQuota =
+          err?.status === 429 ||
+          errorMessage.includes("429") ||
+          errorMessage.includes("quota") ||
+          errorMessage.includes("Quota exceeded") ||
+          errorMessage.includes("Resource has been exhausted");
+
+        if (is503) encountered503 = true;
+        if (isQuota) encounteredQuota = true;
+
+        // If it's a 503 spike and we have retries left on the current model, wait and retry
+        if (is503 && attempt < MAX_RETRIES) {
+          const delayMs = attempt === 0 ? 1500 : 2500;
+          console.warn(
+            `[JobScope Gemini] Model ${modelName} returned 503 high demand. Retrying attempt ${attempt + 2}/${MAX_RETRIES + 1} after ${delayMs}ms...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
         }
-        continue;
+
+        // If 503 persisted after retries, or quota was reached, move to alternate candidate model
+        if ((is503 || isQuota) && !isLastModel) {
+          console.warn(
+            `[JobScope Gemini] Model ${modelName} failed (${err.message}). Trying alternate flagship model ${candidateModels[mIndex + 1]}...`
+          );
+          break;
+        }
+
+        break;
       }
-      throw err;
     }
   }
+
+  // Provide clear, honest Swedish error guidance if all top-tier models failed
+  if (encountered503) {
+    throw new Error(
+      "Google upplever tillfälligt hög belastning just nu (503 Service Unavailable). Vänta några sekunder och försök igen för full kvalitet."
+    );
+  }
+
+  if (encounteredQuota) {
+    throw new Error(
+      "Dygnsgränsen för Google Gemini på gratisnivån har nåtts (20 anrop/dygn). Vänta till imorgon, aktivera Pay-as-you-go i Google AI Studio eller växla till Flash-Lite under Inställningar."
+    );
+  }
+
   throw lastError;
 }
 
