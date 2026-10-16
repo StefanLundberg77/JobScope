@@ -311,38 +311,50 @@ export function TrackerView({
                 {colJobs.map((job) => (
                   <div
                     key={job.id}
-                    className={`rounded-xl border bg-white p-3 shadow-xs transition-all hover:shadow-md dark:bg-neutral-850 ${
+                    className={`rounded-xl border bg-white p-3 shadow-xs transition-all hover:shadow-md dark:bg-neutral-800 ${
                       isDismissedCol
-                        ? "border-slate-300 opacity-85 hover:opacity-100 dark:border-slate-800"
-                        : "border-neutral-200 dark:border-neutral-800"
+                        ? "border-slate-300 opacity-85 hover:opacity-100 dark:border-slate-800 dark:bg-neutral-800/60"
+                        : "border-neutral-200 dark:border-neutral-700"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-1">
-                      <h4 className="text-xs font-bold text-neutral-900 line-clamp-2 dark:text-white">
-                        {job.title}
-                      </h4>
+                    {/* Company name & delete action */}
+                    <div className="flex items-start justify-between gap-1.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <Building className="h-3.5 w-3.5 shrink-0 text-neutral-500 dark:text-neutral-400" />
+                          <h4
+                            className="text-sm font-bold text-neutral-900 dark:text-white truncate"
+                            title={job.company}
+                          >
+                            {job.company}
+                          </h4>
+                        </div>
+                        {/* Target job title being applied for */}
+                        <p
+                          className="mt-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-300 line-clamp-1"
+                          title={job.title}
+                        >
+                          {job.title}
+                        </p>
+                      </div>
                       <button
                         onClick={() => handleDeleteJob(job.id)}
-                        className="text-neutral-400 hover:text-red-500 shrink-0"
+                        className="text-neutral-400 hover:text-red-500 shrink-0 p-0.5 transition-colors"
                         title="Radera"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    <div className="mt-1 flex items-center gap-1 text-[11px] text-neutral-500">
-                      <Building className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{job.company}</span>
-                    </div>
-
-                    <div className="mt-0.5 flex items-center gap-1 text-[11px] text-neutral-400">
+                    {/* Location */}
+                    <div className="mt-1.5 flex items-center gap-1 text-[11px] text-neutral-500 dark:text-neutral-400">
                       <MapPin className="h-3 w-3 shrink-0" />
                       <span className="truncate">{job.location}</span>
                     </div>
 
                     {/* Saved timestamp */}
                     {job.createdAt && (
-                      <div className="mt-1 flex items-center gap-1 text-[10px] text-neutral-400 dark:text-neutral-500">
+                      <div className="mt-0.5 flex items-center gap-1 text-[10px] text-neutral-400 dark:text-neutral-500">
                         <Clock className="h-3 w-3 shrink-0" />
                         <span className="truncate">Sparad {formatSavedDate(job.createdAt)}</span>
                       </div>
@@ -373,16 +385,29 @@ export function TrackerView({
                     )}
 
                     {/* Actions */}
-                    <div className="mt-3 pt-2 border-t border-neutral-100 dark:border-neutral-800 flex flex-col gap-1.5">
+                    <div className="mt-3 pt-2 border-t border-neutral-100 dark:border-neutral-700/60 flex flex-col gap-1.5">
                       {isDismissedCol ? (
-                        <button
-                          onClick={() => handleUpdateStatus(job.id, "saved")}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50/70 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 transition-colors"
-                          title="Flytta tillbaka till sparade och häv sökblockering"
-                        >
-                          <RotateCcw className="h-3 w-3" />
-                          <span>Återaktivera</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleUpdateStatus(job.id, "saved")}
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50/70 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 transition-colors"
+                            title="Flytta tillbaka till sparade och häv sökblockering"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            <span>Återaktivera</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenNoteModal(job)}
+                            title={(job.notes || job.applications?.[0]?.notes) ? "Visa eller redigera anteckning" : "Anteckningar"}
+                            className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md border transition-colors ${
+                              (job.notes || job.applications?.[0]?.notes)
+                                ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                : "border-neutral-200 bg-neutral-50/70 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
+                            }`}
+                          >
+                            <StickyNote className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       ) : (
                         <>
                           {job.matchScore === null || job.matchScore === undefined ? (
@@ -406,34 +431,30 @@ export function TrackerView({
                             </button>
                           ) : null}
 
-                          <button
-                            onClick={() => onOpenTailorStudio(job.id)}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-blue-200 bg-blue-50/70 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60 transition-colors"
-                          >
-                            <FileText className="h-3 w-3" />
-                            <span>Öppna CV</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => onOpenTailorStudio(job.id)}
+                              className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 transition-colors"
+                              title="Öppna CV i Skräddarsy-studion"
+                            >
+                              <FileText className="h-3 w-3 text-neutral-500 dark:text-neutral-400" />
+                              <span>Öppna CV</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenNoteModal(job)}
+                              title={(job.notes || job.applications?.[0]?.notes) ? "Visa eller redigera anteckning" : "Anteckningar"}
+                              className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md border transition-colors ${
+                                (job.notes || job.applications?.[0]?.notes)
+                                  ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                  : "border-neutral-200 bg-neutral-50/70 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
+                              }`}
+                            >
+                              <StickyNote className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </>
                       )}
-
-                      {/* Note Button */}
-                      {(() => {
-                        const hasNote = Boolean(job.notes || job.applications?.[0]?.notes);
-                        return (
-                          <button
-                            onClick={() => handleOpenNoteModal(job)}
-                            className={`flex w-full items-center justify-center gap-1.5 rounded-md border py-1 text-[11px] font-medium transition-colors ${
-                              hasNote
-                                ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 font-semibold"
-                                : "border-neutral-200 bg-neutral-50/70 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-750"
-                            }`}
-                            title="Anteckningar"
-                          >
-                            <StickyNote className={`h-3 w-3 ${hasNote ? "text-amber-600 dark:text-amber-400" : "text-neutral-500 dark:text-neutral-400"}`} />
-                            <span>Anteckningar</span>
-                          </button>
-                        );
-                      })()}
 
                       {/* Move to stage select */}
                       <select
@@ -561,7 +582,7 @@ export function TrackerView({
                   </h3>
                 </div>
                 <p className="text-xs text-neutral-500 truncate max-w-[280px] mt-0.5">
-                  {noteModalJob.title} • {noteModalJob.company}
+                  {noteModalJob.company} • {noteModalJob.title}
                 </p>
               </div>
               <button

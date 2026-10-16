@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Search,
   MapPin,
@@ -23,6 +23,8 @@ import {
   X,
   StickyNote,
   Gauge,
+  SlidersHorizontal,
+  ChevronDown,
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
 
@@ -48,6 +50,29 @@ interface SearchSessionCache {
  * Predefined keywords commonly excluded to filter out senior or lead positions.
  */
 const EXCLUDE_PRESETS = ["Senior", "Erfaren", "Lead", "Principal", "Arkitekt"];
+
+/**
+ * Predefined geographic search scopes.
+ */
+const LOCATION_OPTIONS: {
+  id: "goteborg" | "commute" | "region_14" | "all";
+  label: string;
+}[] = [
+  { id: "goteborg", label: "Göteborg" },
+  { id: "commute", label: "Pendlingsavstånd (Mölndal, Kungälv m.fl.)" },
+  { id: "region_14", label: "Västra Götaland" },
+  { id: "all", label: "Hela Sverige" },
+];
+
+/**
+ * Display labels for geographic locations.
+ */
+const LOCATION_LABELS: Record<string, string> = {
+  goteborg: "Göteborg",
+  commute: "Pendlingsavstånd",
+  region_14: "Västra Götaland",
+  all: "Hela Sverige",
+};
 
 function getStoredSearchSession(): SearchSessionCache | null {
   if (typeof window === "undefined") return null;
@@ -157,9 +182,48 @@ export function JobSearchView({
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
+  // Collapsible advanced filters panel state
+  const [showFilters, setShowFilters] = useState(false);
+
   // Tracks client session restoration to prevent SSR hydration mismatches
   const [isSessionRestored, setIsSessionRestored] = useState(false);
   const hasLoadedInitialFilter = useRef(false);
+
+  // Calculates count of active non-default filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (location !== "goteborg") count++;
+    if (source !== "all") count++;
+    if (!broadIt) count++;
+    if (remoteOnly) count++;
+    if (!hideBlocked) count++;
+    const defaultExcludes = ["senior", "erfaren"];
+    const isDefaultExcludes =
+      excludeWords.length === 2 &&
+      excludeWords.every((w) => defaultExcludes.includes(w.toLowerCase()));
+    if (!isDefaultExcludes) count++;
+    return count;
+  }, [location, source, broadIt, remoteOnly, hideBlocked, excludeWords]);
+
+  // Reset all filters to default baseline
+  const handleResetFilters = () => {
+    setLocation("goteborg");
+    setSource("all");
+    setBroadIt(true);
+    setRemoteOnly(false);
+    setHideBlocked(true);
+    setExcludeWords(["Senior", "Erfaren"]);
+    handleSearch(
+      query,
+      "all",
+      true,
+      sort,
+      true,
+      "goteborg",
+      false,
+      ["Senior", "Erfaren"]
+    );
+  };
 
   // Search function
   const handleSearch = async (
@@ -219,29 +283,29 @@ export function JobSearchView({
   };
 
   const toggleExcludeWord = (word: string) => {
-    setExcludeWords((prev) => {
-      const exists = prev.some((w) => w.toLowerCase() === word.toLowerCase());
-      if (exists) {
-        return prev.filter((w) => w.toLowerCase() !== word.toLowerCase());
-      } else {
-        return [...prev, word];
-      }
-    });
+    const exists = excludeWords.some((w) => w.toLowerCase() === word.toLowerCase());
+    const next = exists
+      ? excludeWords.filter((w) => w.toLowerCase() !== word.toLowerCase())
+      : [...excludeWords, word];
+    setExcludeWords(next);
+    handleSearch(undefined, undefined, undefined, undefined, undefined, undefined, undefined, next);
   };
 
   const handleAddCustomExclude = () => {
     const trimmed = customExcludeInput.trim();
     if (!trimmed) return;
     if (!excludeWords.some((w) => w.toLowerCase() === trimmed.toLowerCase())) {
-      setExcludeWords((prev) => [...prev, trimmed]);
+      const next = [...excludeWords, trimmed];
+      setExcludeWords(next);
+      handleSearch(undefined, undefined, undefined, undefined, undefined, undefined, undefined, next);
     }
     setCustomExcludeInput("");
   };
 
   const removeExcludeWord = (word: string) => {
-    setExcludeWords((prev) =>
-      prev.filter((w) => w.toLowerCase() !== word.toLowerCase())
-    );
+    const next = excludeWords.filter((w) => w.toLowerCase() !== word.toLowerCase());
+    setExcludeWords(next);
+    handleSearch(undefined, undefined, undefined, undefined, undefined, undefined, undefined, next);
   };
 
   // Restore session from sessionStorage on client mount (safe from SSR hydration mismatch)
@@ -662,375 +726,475 @@ export function JobSearchView({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-16">
-      {/* Search Bar & Filters */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      {/* Search Bar & Filters Card */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSearch();
           }}
-          className="flex flex-col gap-3 sm:flex-row"
+          className="flex flex-col gap-2.5 sm:flex-row sm:items-center"
         >
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-3 h-5 w-5 text-neutral-400" />
+            <Search className="absolute left-3.5 top-3 h-4.5 w-4.5 text-neutral-400" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Sök IT-jobb (lämna tomt för alla IT-roller, eller t.ex. C#, Python, Support, DevOps)..."
-              className="w-full rounded-xl border border-neutral-300 pl-11 pr-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              className="w-full rounded-xl border border-neutral-300 pl-10 pr-9 py-2.5 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  handleSearch("");
+                }}
+                className="absolute right-3 top-3 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                title="Rensa sökfält"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            Sök annonser
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Filter Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setShowFilters((prev) => !prev)}
+              className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
+                showFilters || activeFilterCount > 0
+                  ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300"
+                  : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+              }`}
+              title={showFilters ? "Dölj filter" : "Visa filter"}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span>Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[11px] font-semibold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 ${
+                  showFilters ? "rotate-180" : ""
+                }`}
+              />
+            </button>
 
+            {/* Primary Search Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              <span>Sök annonser</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Quick IT Focus Chips */}
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-medium text-neutral-400 mr-1 flex items-center gap-1 shrink-0">
+              <Sparkles className="h-3 w-3 text-blue-500" /> Snabbval:
+            </span>
+            {QUICK_IT_FILTERS.map((f) => {
+              const isCurrent = query === f.query && (f.broad === undefined || broadIt === f.broad);
+              return (
+                <button
+                  key={f.label}
+                  type="button"
+                  onClick={() => {
+                    setQuery(f.query);
+                    if (f.broad !== undefined) setBroadIt(f.broad);
+                    handleSearch(f.query, undefined, f.broad ?? broadIt);
+                  }}
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                    isCurrent
+                      ? "bg-blue-600 text-white shadow-2xs font-semibold"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick Active Scope Indicator (Location + Remote) */}
+          <div className="hidden lg:flex items-center gap-1.5 text-xs text-neutral-400 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowFilters(true)}
+              className="flex items-center gap-1 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              title="Klicka för att ändra sökområde i filterpanelen"
+            >
+              <MapPin className="h-3 w-3 text-neutral-400" />
+              <span>{LOCATION_LABELS[location] || location}</span>
+            </button>
+            {remoteOnly && (
+              <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                <Globe className="h-3 w-3" />
+                <span>+ Distans</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Collapsible Advanced Filters Drawer */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
+            {/* Drawer Header with Title and Reset */}
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-blue-500" />
+                Anpassa filter
+              </span>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                title="Återställ alla filter till standardinställningar"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Återställ standardfilter</span>
+              </button>
+            </div>
+
+            {/* 1. Område (Location) */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 sm:w-24 shrink-0">
+                <MapPin className="h-3.5 w-3.5 text-neutral-400" /> Område:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {LOCATION_OPTIONS.map((loc) => (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onClick={() => {
+                      setLocation(loc.id);
+                      handleSearch(undefined, undefined, undefined, undefined, undefined, loc.id);
+                    }}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                      location === loc.id
+                        ? "bg-blue-600 text-white shadow-2xs font-semibold"
+                        : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                    }`}
+                  >
+                    {loc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Källa (Source) */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 sm:w-24 shrink-0">
+                <Layers className="h-3.5 w-3.5 text-neutral-400" /> Källa:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSource("all");
+                    handleSearch(undefined, "all");
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                    source === "all"
+                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-2xs font-semibold"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  Alla källor (JobTech + LinkedIn)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSource("linkedin");
+                    handleSearch(undefined, "linkedin");
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                    source === "linkedin"
+                      ? "bg-blue-600 text-white shadow-2xs font-semibold"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full bg-blue-400" />
+                  LinkedIn (Offentlig)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSource("jobtech");
+                    handleSearch(undefined, "jobtech");
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                    source === "jobtech"
+                      ? "bg-emerald-600 text-white shadow-2xs font-semibold"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  Arbetsförmedlingen
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Alternativ & Växlar */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 sm:w-24 shrink-0">
+                <Globe className="h-3.5 w-3.5 text-neutral-400" /> Alternativ:
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <label
+                  className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
+                    broadIt
+                      ? "bg-blue-50/90 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 shadow-2xs"
+                      : "bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={broadIt}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setBroadIt(val);
+                      handleSearch(undefined, undefined, val);
+                    }}
+                    className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                  />
+                  <span>Bred Data/IT-sökning</span>
+                </label>
+
+                <label
+                  className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
+                    remoteOnly
+                      ? "bg-blue-50/90 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 shadow-2xs"
+                      : "bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700"
+                  }`}
+                  title="Visar vanliga jobb på vald ort samt distansjobb från hela landet"
+                >
+                  <input
+                    type="checkbox"
+                    checked={remoteOnly}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setRemoteOnly(val);
+                      handleSearch(undefined, undefined, undefined, undefined, undefined, undefined, val);
+                    }}
+                    className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                  />
+                  <Globe className="h-3.5 w-3.5 text-blue-500" />
+                  <span>Inkludera distans</span>
+                </label>
+
+                <label
+                  className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
+                    hideBlocked
+                      ? "bg-neutral-100 text-neutral-700 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700"
+                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 shadow-2xs"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={hideBlocked}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setHideBlocked(val);
+                      handleSearch(undefined, undefined, undefined, undefined, val);
+                    }}
+                    className="rounded border-neutral-300 text-red-600 focus:ring-red-500 h-3.5 w-3.5"
+                  />
+                  <Ban className="h-3.5 w-3.5 text-red-500" />
+                  <span>
+                    Dölj blockerade {blockedJobIds.size > 0 && `(${blockedJobIds.size})`}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* 4. Exkludera nyckelord */}
+            <div className="flex flex-col sm:flex-row sm:items-start gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 sm:w-24 shrink-0 pt-1">
+                <Ban className="h-3.5 w-3.5 text-red-500" /> Exkludera:
+              </span>
+              <div className="flex flex-1 flex-wrap items-center gap-1.5">
+                {/* Predefined toggles */}
+                {EXCLUDE_PRESETS.map((preset) => {
+                  const isExcluded = excludeWords.some(
+                    (w) => w.toLowerCase() === preset.toLowerCase()
+                  );
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => toggleExcludeWord(preset)}
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                        isExcluded
+                          ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 shadow-2xs"
+                          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                      }`}
+                      title={isExcluded ? `Klicka för att tillåta ${preset}` : `Klicka för att exkludera ${preset}`}
+                    >
+                      <span>{preset}</span>
+                      {isExcluded && <X className="h-3 w-3 text-red-500" />}
+                    </button>
+                  );
+                })}
+
+                {/* Custom exclusion chips */}
+                {excludeWords
+                  .filter(
+                    (w) => !EXCLUDE_PRESETS.some((p) => p.toLowerCase() === w.toLowerCase())
+                  )
+                  .map((word) => (
+                    <span
+                      key={word}
+                      className="flex items-center gap-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 px-2.5 py-1 text-xs font-medium shadow-2xs"
+                    >
+                      <span>{word}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeExcludeWord(word)}
+                        className="hover:text-red-900 dark:hover:text-red-100 cursor-pointer"
+                        title={`Ta bort exkludering av ${word}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+
+                {/* Free text input for adding custom exclusion keyword */}
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={customExcludeInput}
+                    onChange={(e) => setCustomExcludeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomExclude();
+                      }
+                    }}
+                    placeholder="+ Fritext (t.ex. trainee)..."
+                    className="w-40 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-2.5 py-1 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:border-red-500 focus:outline-none"
+                  />
+                  {customExcludeInput.trim() && (
+                    <button
+                      type="button"
+                      onClick={handleAddCustomExclude}
+                      className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 cursor-pointer shadow-2xs"
+                    >
+                      Lägg till
+                    </button>
+                  )}
+                </div>
+
+                {excludeWords.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExcludeWords([]);
+                      handleSearch(undefined, undefined, undefined, undefined, undefined, undefined, undefined, []);
+                    }}
+                    className="ml-auto text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 underline cursor-pointer"
+                  >
+                    Rensa alla
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Scan Message Notification */}
+      {scanMessage && (
+        <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/90 p-3 text-xs font-medium text-blue-900 shadow-2xs dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
+          <Sparkles className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+          <span>{scanMessage}</span>
+        </div>
+      )}
+
+      {/* Results Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+            Hittade annonser ({totalHits})
+          </h2>
+          <span className="text-xs text-neutral-400">
+            • {LOCATION_LABELS[location] || location} •{" "}
+            {source === "all"
+              ? "LinkedIn + Arbetsförmedlingen"
+              : source === "linkedin"
+              ? "LinkedIn"
+              : "Arbetsförmedlingen"}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-auto">
+          {/* Daily Scan Button */}
           <button
             type="button"
             onClick={handleTriggerScan}
             disabled={scanning}
             title="Kör automatisk sökning mot LinkedIn & JobTech och spara matcher med AI i Kanban"
-            className="flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/50 disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800/80 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40 disabled:opacity-50 transition-colors shadow-2xs cursor-pointer"
           >
             {scanning ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
             )}
-            <span className="hidden md:inline">Kör daglig bevakning</span>
+            <span>Kör daglig bevakning</span>
           </button>
-        </form>
 
-        {/* Quick IT Focus Chips */}
-        <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-medium text-neutral-400 mr-1 flex items-center gap-1">
-            <Sparkles className="h-3 w-3 text-blue-500" /> Snabbval:
-          </span>
-          {QUICK_IT_FILTERS.map((f) => {
-            const isCurrent = query === f.query && (f.broad === undefined || broadIt === f.broad);
-            return (
+          {/* Sort selector */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1">
+              <ArrowUpDown className="h-3.5 w-3.5" />
+            </span>
+            <div className="inline-flex rounded-lg bg-neutral-100 p-0.5 dark:bg-neutral-800">
               <button
-                key={f.label}
                 type="button"
                 onClick={() => {
-                  setQuery(f.query);
-                  if (f.broad !== undefined) setBroadIt(f.broad);
-                  handleSearch(f.query, undefined, f.broad ?? broadIt);
+                  setSort("relevance");
+                  handleSearch(undefined, undefined, undefined, "relevance");
                 }}
-                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                  isCurrent
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                  sort === "relevance"
+                    ? "bg-white text-neutral-900 shadow-2xs dark:bg-neutral-700 dark:text-white"
+                    : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-white"
                 }`}
               >
-                {f.label}
+                Relevans
               </button>
-            );
-          })}
-        </div>
-
-        {/* Scan Message Notification */}
-        {scanMessage && (
-          <div className="mt-3 rounded-xl bg-neutral-100 p-3 text-xs font-medium text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
-            {scanMessage}
-          </div>
-        )}
-
-        {/* Source Filter Tabs */}
-        <div className="mt-4 flex flex-wrap items-center gap-2 pt-4 border-t border-neutral-100 dark:border-neutral-800">
-          <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 mr-2">
-            <Layers className="h-3.5 w-3.5" /> Källa:
-          </span>
-
-          <button
-            type="button"
-            onClick={() => setSource("all")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              source === "all"
-                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-sm"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-            }`}
-          >
-            Alla källor (JobTech + LinkedIn)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSource("linkedin")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              source === "linkedin"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-            }`}
-          >
-            <span className="h-2 w-2 rounded-full bg-blue-400" />
-            LinkedIn (Offentlig sökning)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSource("jobtech")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              source === "jobtech"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-            }`}
-          >
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            Arbetsförmedlingen
-          </button>
-        </div>
-
-        {/* Location & Remote Filter Chips */}
-        <div className="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-          <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500 mr-2">
-            <Filter className="h-3.5 w-3.5" /> Område:
-          </span>
-
-          <button
-            type="button"
-            onClick={() => setLocation("goteborg")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              location === "goteborg"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-            }`}
-          >
-            Göteborg
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLocation("commute")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              location === "commute"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-            }`}
-          >
-            Pendlingsavstånd (Mölndal, Kungälv m.fl.)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLocation("region_14")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              location === "region_14"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-            }`}
-          >
-            Västra Götaland
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLocation("all")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              location === "all"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-            }`}
-          >
-            Hela Sverige
-          </button>
-
-          <div className="ml-auto flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800">
-              <input
-                type="checkbox"
-                checked={broadIt}
-                onChange={(e) => {
-                  const val = e.target.checked;
-                  setBroadIt(val);
-                  handleSearch(undefined, undefined, val);
-                }}
-                className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span>Bred Data/IT-sökning</span>
-            </label>
-
-            <label
-              className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300"
-              title="Visar vanliga jobb på vald ort samt distansjobb från hela landet"
-            >
-              <input
-                type="checkbox"
-                checked={remoteOnly}
-                onChange={(e) => setRemoteOnly(e.target.checked)}
-                className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
-              />
-              <Globe className="h-3.5 w-3.5 text-blue-500" />
-              Inkludera distans
-            </label>
-
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-neutral-700 dark:text-neutral-300">
-              <input
-                type="checkbox"
-                checked={hideBlocked}
-                onChange={(e) => {
-                  const val = e.target.checked;
-                  setHideBlocked(val);
-                  handleSearch(undefined, undefined, undefined, undefined, val);
-                }}
-                className="rounded border-neutral-300 text-red-600 focus:ring-red-500"
-              />
-              <Ban className="h-3.5 w-3.5 text-red-500" />
-              <span>
-                Dölj blockerade {blockedJobIds.size > 0 && `(${blockedJobIds.size})`}
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Exclude Keywords Section */}
-        <div className="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-          <span className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 mr-1">
-            <Ban className="h-3.5 w-3.5" /> Exkludera:
-          </span>
-
-          {/* Predefined toggles */}
-          {EXCLUDE_PRESETS.map((preset) => {
-            const isExcluded = excludeWords.some(
-              (w) => w.toLowerCase() === preset.toLowerCase()
-            );
-            return (
               <button
-                key={preset}
                 type="button"
-                onClick={() => toggleExcludeWord(preset)}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
-                  isExcluded
-                    ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 shadow-xs"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                onClick={() => {
+                  setSort("date");
+                  handleSearch(undefined, undefined, undefined, "date");
+                }}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                  sort === "date"
+                    ? "bg-white text-neutral-900 shadow-2xs dark:bg-neutral-700 dark:text-white"
+                    : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-white"
                 }`}
-                title={isExcluded ? `Klicka för att tillåta ${preset}` : `Klicka för att exkludera ${preset}`}
               >
-                <span>{preset}</span>
-                {isExcluded && <X className="h-3 w-3 text-red-500" />}
+                Nyast först
               </button>
-            );
-          })}
-
-          {/* Custom exclusion chips */}
-          {excludeWords
-            .filter(
-              (w) => !EXCLUDE_PRESETS.some((p) => p.toLowerCase() === w.toLowerCase())
-            )
-            .map((word) => (
-              <span
-                key={word}
-                className="flex items-center gap-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 px-2.5 py-1 text-xs font-medium shadow-xs"
-              >
-                <span>{word}</span>
-                <button
-                  type="button"
-                  onClick={() => removeExcludeWord(word)}
-                  className="hover:text-red-900 dark:hover:text-red-100 cursor-pointer"
-                  title={`Ta bort exkludering av ${word}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-
-          {/* Free text input for adding custom exclusion keyword */}
-          <div className="flex items-center gap-1.5">
-            <input
-              type="text"
-              value={customExcludeInput}
-              onChange={(e) => setCustomExcludeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddCustomExclude();
-                }
-              }}
-              placeholder="+ Fritext (t.ex. trainee)..."
-              className="w-44 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-2.5 py-1 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:border-red-500 focus:outline-none"
-            />
-            {customExcludeInput.trim() && (
-              <button
-                type="button"
-                onClick={handleAddCustomExclude}
-                className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 cursor-pointer shadow-xs"
-              >
-                Lägg till
-              </button>
-            )}
-          </div>
-
-          {excludeWords.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setExcludeWords([])}
-              className="ml-auto text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 underline cursor-pointer"
-            >
-              Rensa alla
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Results Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-            Hittade annonser ({totalHits})
-          </h2>
-          <span className="text-xs text-neutral-400">
-            {source === "all"
-              ? "Källa: LinkedIn (Offentlig) + Arbetsförmedlingen"
-              : source === "linkedin"
-              ? "Källa: LinkedIn (Offentliga annonser)"
-              : "Källa: Arbetsförmedlingen JobTech API"}
-          </span>
-        </div>
-
-        {/* Sort selector */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          <span className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1">
-            <ArrowUpDown className="h-3.5 w-3.5" /> Sortera:
-          </span>
-          <div className="inline-flex rounded-lg bg-neutral-100 p-0.5 dark:bg-neutral-800">
-            <button
-              type="button"
-              onClick={() => {
-                setSort("relevance");
-                handleSearch(undefined, undefined, undefined, "relevance");
-              }}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                sort === "relevance"
-                  ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-700 dark:text-white"
-                  : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-white"
-              }`}
-            >
-              Relevans
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSort("date");
-                handleSearch(undefined, undefined, undefined, "date");
-              }}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                sort === "date"
-                  ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-700 dark:text-white"
-                  : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-white"
-              }`}
-            >
-              Nyast först
-            </button>
+            </div>
           </div>
         </div>
       </div>

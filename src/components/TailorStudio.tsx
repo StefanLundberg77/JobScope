@@ -23,6 +23,8 @@ import {
   Camera,
   Image as ImageIcon,
   StickyNote,
+  FolderDown,
+  FolderOpen,
 } from "lucide-react";
 import {
   JobItem,
@@ -150,6 +152,17 @@ export function TailorStudio({
   const [includePhotoOnCv, setIncludePhotoOnCv] = useState(true);
   const [includePhotoOnLetter, setIncludePhotoOnLetter] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState("/profile/cv_rum_gron_vaxt.jpg");
+
+  // Export Package State
+  const [exporting, setExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportedFolder, setExportedFolder] = useState<{
+    folderName: string;
+    folderPath: string;
+    relativeFolder: string;
+    files: string[];
+  } | null>(null);
+  const [openingFolder, setOpeningFolder] = useState(false);
 
   // Load Job and Master Profile
   useEffect(() => {
@@ -309,6 +322,72 @@ export function TailorStudio({
       }
     } catch (err) {
       console.error("Failed to update status:", err);
+    }
+  };
+
+  // Export application package to disk (PDF + plain text)
+  const handleExportPackage = async () => {
+    setExporting(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          includePhotoOnCv,
+          includePhotoOnLetter,
+          selectedPhoto,
+          language: activeLanguage,
+          tailoredSummary,
+          tailoredExperiences,
+          tailoredSkills,
+          coverLetter,
+          emailSubject,
+          emailBody,
+          notes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Kunde inte exportera ansökningspaketet.");
+      }
+
+      setExportedFolder(data);
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 4000);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Fel vid export av ansökningspaket"
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Open folder in Windows File Explorer
+  const handleOpenFolder = async () => {
+    if (!exportedFolder?.folderPath) return;
+    setOpeningFolder(true);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/open-folder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folderName: exportedFolder.folderName,
+          folderPath: exportedFolder.folderPath,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Kunde inte öppna mappen.");
+      }
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Kunde inte öppna mappen i Utforskaren"
+      );
+    } finally {
+      setOpeningFolder(false);
     }
   };
 
@@ -490,8 +569,66 @@ export function TailorStudio({
               </>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={handleExportPackage}
+            disabled={exporting}
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-800 shadow-xs hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 disabled:opacity-50 cursor-pointer transition-colors"
+            title="Exportera ansökningspaket (PDF + Text) till mappen exports/"
+          >
+            {exporting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600 dark:text-blue-400" />
+                <span>Exporterar...</span>
+              </>
+            ) : exportSuccess ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-700 dark:text-emerald-300">Sparat!</span>
+              </>
+            ) : (
+              <>
+                <FolderDown className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-400" />
+                <span>Exportera till mapp</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Export Success Notification Banner */}
+      {exportedFolder && (
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/90 p-3.5 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-200 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/80 dark:text-emerald-300">
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="font-semibold text-emerald-950 dark:text-emerald-100">
+                Ansökningspaketet har sparats till projektmappen!
+              </div>
+              <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                Plats: <span className="font-mono">{exportedFolder.relativeFolder}</span> ({exportedFolder.files.length} filer: PDF, ren text &amp; backup)
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenFolder}
+            disabled={openingFolder}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 disabled:opacity-50 cursor-pointer transition-colors"
+            title="Öppna mappen i Windows Utforskaren"
+          >
+            {openingFolder ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FolderOpen className="h-3.5 w-3.5" />
+            )}
+            <span>Öppna i Utforskaren</span>
+          </button>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="no-print flex items-center gap-2 rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
@@ -1198,14 +1335,42 @@ export function TailorStudio({
                 </div>
               </div>
 
-              {/* Print CTA */}
-              <button
-                onClick={() => window.print()}
-                className="flex items-center justify-center gap-2 rounded-xl bg-neutral-900 px-5 py-2 text-xs font-semibold text-white hover:bg-black dark:bg-white dark:text-black shadow-sm"
-              >
-                <Printer className="h-4 w-4" />
-                Skriv ut / Spara som PDF
-              </button>
+              {/* Export & Print CTAs */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportPackage}
+                  disabled={exporting}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-800 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 shadow-xs disabled:opacity-50 cursor-pointer transition-colors"
+                  title="Generera PDF och textversioner och spara automatiskt till exports/"
+                >
+                  {exporting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600 dark:text-blue-400" />
+                      <span>Exporterar paket...</span>
+                    </>
+                  ) : exportSuccess ? (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-emerald-700 dark:text-emerald-300">Sparat till disk!</span>
+                    </>
+                  ) : (
+                    <>
+                      <FolderDown className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-400" />
+                      <span>Spara paket till disk</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-black dark:bg-white dark:text-black shadow-sm"
+                  title="Öppna webbläsarens vanliga utskriftsdialog"
+                >
+                  <Printer className="h-4 w-4" />
+                  Skriv ut manuellt
+                </button>
+              </div>
             </div>
 
             {/* Photo controls & tips */}
