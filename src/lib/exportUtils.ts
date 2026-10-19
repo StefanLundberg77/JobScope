@@ -421,7 +421,7 @@ export function generateCvHtml(
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
-<title>CV - ${profile.fullName} - ${data.jobCompany}</title>
+<title>CV - ${profile.fullName}</title>
 <style>
   @page {
     size: A4;
@@ -674,7 +674,7 @@ export function generateCoverLetterHtml(
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
-<title>Personligt Brev - ${profile.fullName} - ${data.jobCompany}</title>
+<title>Personligt Brev - ${profile.fullName}</title>
 <style>
   @page {
     size: A4;

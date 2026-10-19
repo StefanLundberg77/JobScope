@@ -171,10 +171,10 @@ export async function POST(
     await fs.mkdir(targetFolder, { recursive: true });
 
     const safeCandidate = sanitizePathSegment(profile.fullName);
-    const cvPdfName = `CV_${safeCandidate}_${safeCompany}.pdf`;
-    const letterPdfName = `Personligt_Brev_${safeCandidate}_${safeCompany}.pdf`;
-    const cvTxtName = `CV_${safeCandidate}_${safeCompany}.txt`;
-    const letterTxtName = `Personligt_Brev_${safeCandidate}_${safeCompany}.txt`;
+    const cvPdfName = `CV_${safeCandidate}.pdf`;
+    const letterPdfName = `Personligt_Brev_${safeCandidate}.pdf`;
+    const cvTxtName = `CV_${safeCandidate}.txt`;
+    const letterTxtName = `Personligt_Brev_${safeCandidate}.txt`;
     const infoTxtName = `Epost_och_Ansökningsinfo.txt`;
     const jobBackupTxtName = `Originalannons.txt`;
 

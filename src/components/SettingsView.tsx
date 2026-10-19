@@ -15,12 +15,15 @@ import {
   Sparkles,
   Cpu,
   Zap,
+  HardDrive,
+  FolderOpen,
+  Trash2,
 } from "lucide-react";
 
 /**
  * Settings configuration view.
  * Allows managing Gemini API credentials, AI model selection, target job role, geographic search preferences,
- * minimum ATS match scoring threshold, and automated background scan parameters.
+ * minimum ATS match scoring threshold, automated background scan parameters, and export storage management.
  */
 export function SettingsView() {
   const [apiKey, setApiKey] = useState("");
@@ -38,6 +41,24 @@ export function SettingsView() {
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Export storage states
+  const [exportStats, setExportStats] = useState<{
+    totalFolders: number;
+    totalFiles: number;
+    totalSizeBytes: number;
+    formattedSize: string;
+    folders: Array<{
+      name: string;
+      fileCount: number;
+      sizeBytes: number;
+      createdAt: string;
+    }>;
+  } | null>(null);
+  const [clearingExports, setClearingExports] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [exportActionSuccess, setExportActionSuccess] = useState<string | null>(null);
+  const [openingExportsFolder, setOpeningExportsFolder] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -71,8 +92,66 @@ export function SettingsView() {
         setLoading(false);
       }
     }
+
+    async function loadExportStats() {
+      try {
+        const res = await fetch("/api/exports");
+        if (res.ok) {
+          const data = await res.json();
+          setExportStats(data);
+        }
+      } catch (err) {
+        console.error("Failed to load export stats:", err);
+      }
+    }
+
     loadSettings();
+    loadExportStats();
   }, []);
+
+  const refreshExportStats = async () => {
+    try {
+      const res = await fetch("/api/exports");
+      if (res.ok) {
+        const data = await res.json();
+        setExportStats(data);
+      }
+    } catch (err) {
+      console.error("Failed to refresh export stats:", err);
+    }
+  };
+
+  const handleOpenExportsFolder = async () => {
+    setOpeningExportsFolder(true);
+    try {
+      await fetch("/api/exports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "open" }),
+      });
+    } catch (err) {
+      console.error("Failed to open exports folder:", err);
+    } finally {
+      setOpeningExportsFolder(false);
+    }
+  };
+
+  const handleClearExports = async () => {
+    setClearingExports(true);
+    try {
+      const res = await fetch("/api/exports", { method: "DELETE" });
+      if (res.ok) {
+        setExportActionSuccess("Export-mappen har rensats!");
+        setConfirmClear(false);
+        await refreshExportStats();
+        setTimeout(() => setExportActionSuccess(null), 3500);
+      }
+    } catch (err) {
+      console.error("Failed to clear exports:", err);
+    } finally {
+      setClearingExports(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -489,6 +568,132 @@ export function SettingsView() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Storage & Export Management Card */}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="flex items-center gap-2 text-base font-bold text-neutral-900 dark:text-white">
+                <HardDrive className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                Lagring &amp; Exporterade ansökningar
+              </h3>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                Lokalt genererade PDF- och textfiler sparade i mappen <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">exports/</code>. Alla dina skräddarsydda CV:n, brev och sparade jobb lagras tryggt i databasen och påverkas inte vid rensning.
+              </p>
+            </div>
+            {exportStats && (
+              <span className="shrink-0 rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                {exportStats.totalFolders} {exportStats.totalFolders === 1 ? "mapp" : "mappar"} ({exportStats.formattedSize})
+              </span>
+            )}
+          </div>
+
+          {exportActionSuccess && (
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-green-50 p-3 text-xs font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>{exportActionSuccess}</span>
+            </div>
+          )}
+
+          {/* Folders Summary Box */}
+          <div className="mt-4 rounded-xl border border-neutral-100 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-800/40">
+            {exportStats && exportStats.totalFolders > 0 ? (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400 font-medium">
+                  <span>Sparade exportpaket på disken:</span>
+                  <span>Totalt {exportStats.totalFiles} filer</span>
+                </div>
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                  {exportStats.folders.slice(0, 5).map((f) => (
+                    <div
+                      key={f.name}
+                      className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs border border-neutral-200/60 dark:border-neutral-700/60 dark:bg-neutral-800/80"
+                    >
+                      <span
+                        className="truncate font-mono text-[11px] text-neutral-800 dark:text-neutral-200 max-w-[340px]"
+                        title={f.name}
+                      >
+                        {f.name}
+                      </span>
+                      <span className="text-[10px] text-neutral-400 shrink-0 ml-2">
+                        {f.fileCount} filer • {(f.sizeBytes / 1024).toFixed(0)} KB
+                      </span>
+                    </div>
+                  ))}
+                  {exportStats.totalFolders > 5 && (
+                    <div className="text-[11px] text-neutral-400 text-center pt-1">
+                      + ytterligare {exportStats.totalFolders - 5} äldre {exportStats.totalFolders - 5 === 1 ? "mapp" : "mappar"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-2 text-center text-xs text-neutral-400">
+                Mappen <code className="font-mono">exports/</code> är tom. Inga exporterade filer tar upp diskutrymme.
+              </div>
+            )}
+          </div>
+
+          {/* Action Controls */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+            <button
+              type="button"
+              onClick={handleOpenExportsFolder}
+              disabled={openingExportsFolder}
+              className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-50 transition-colors cursor-pointer"
+              title="Öppna rotmappen exports i Windows Utforskaren"
+            >
+              {openingExportsFolder ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FolderOpen className="h-3.5 w-3.5 text-neutral-500" />
+              )}
+              <span>Öppna mappen exports</span>
+            </button>
+
+            {exportStats && exportStats.totalFolders > 0 && (
+              <div>
+                {confirmClear ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-neutral-600 dark:text-neutral-300">
+                      Rensa {exportStats.totalFolders} {exportStats.totalFolders === 1 ? "mapp" : "mappar"}?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleClearExports}
+                      disabled={clearingExports}
+                      className="flex items-center gap-1 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
+                    >
+                      {clearingExports ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                      <span>Ja, rensa nu</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClear(false)}
+                      className="rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 transition-colors cursor-pointer"
+                    >
+                      Avbryt
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClear(true)}
+                    className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/70 px-3.5 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-900/60 transition-colors cursor-pointer"
+                    title="Ta bort alla genererade PDF- och textfiler från mappen exports/"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Rensa export-mappen</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
