@@ -162,6 +162,8 @@ const profileData = {
       category: "Backend & Arkitektur",
       items: [
         ".NET Core",
+        "ASP.NET Core",
+        "Systemarkitektur",
         "FastAPI",
         "Flask",
         "React",
@@ -191,6 +193,9 @@ const profileData = {
       category: "Verktyg & DevOps",
       items: [
         "Docker",
+        "CI/CD (GitHub Actions)",
+        "Enhetstestning (Unit Testing)",
+        "Microsoft Azure",
         "Nginx",
         "WSL2 / Linux",
         "Git & GitHub",
@@ -203,6 +208,15 @@ const profileData = {
         "phpMyAdmin",
         "Dagster",
         "Snowflake"
+      ]
+    },
+    {
+      category: "Ledarskap & Drift",
+      items: [
+        "Teamledarskap",
+        "Operativ drift",
+        "Prioritering under press",
+        "Kris- & konflikthantering"
       ]
     }
   ],
