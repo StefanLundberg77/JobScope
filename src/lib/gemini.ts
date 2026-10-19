@@ -523,13 +523,13 @@ International tech hiring leads and engineering managers value confidence, clari
    - ❌ "with a strong foundation in..." (empty CV filler; state what you build and focus on directly)
    - ❌ "a track record of shipping production software..." (inflated corporate cliché; name the concrete product/release directly)
    - ❌ "Combines deep technical understanding of X with Y" / "deep technical understanding" (avoid self-aggrandizing labels and synthetic bridge sentences)
-   - ❌ "pragmatic crisis management" / "crisis management" (consultant buzzword; use grounded phrasing like "operational team leadership and fast-paced prioritization")
+   - ❌ "pragmatic crisis management" / "crisis management" (consultant buzzword; use grounded phrasing like "operational drift and team leadership with fast prioritization in critical situations")
    - ❌ "I am writing to express my enthusiastic interest / excited to apply for..."
    - ❌ "I have long admired / followed your company with great interest..." (unless a specific factual reason exists)
    - ❌ "Drawn by your unique company culture / vision / flexible benefits" (NEVER regurgitate company marketing copy)
    - ❌ "I am confident that my unique combination of..." / "unique ability"
    - ❌ "Synergistic self-starter / passionate go-getter / hit the ground running / wear many hats"
-   - ❌ "Agile problem solving / agile mindset / solution-oriented / dynamic team player" (empty corporate buzzwords)
+   - ❌ "Agile problem solving / agile mindset / solution-oriented / dynamic team player / fast-paced environment / high tempo" (empty corporate buzzwords)
    - ❌ "Which provides a strong ability to..." / "combines X with Y to deliver unique..." (avoid inflated, indirect promotional bridge phrases; state concrete actions and delivery value directly)
    - ❌ "Experienced [tech] developer" or senior title inflation (candidate is junior/mid with deep practical project execution; use straightforward titles like "C#/.NET Developer" or "Software Developer").
    - ❌ Attributing software/DevOps capabilities ("from code to deployment") to restaurant leadership (keep code/deployment to technical projects like Steam/Docker/APIs).
@@ -548,7 +548,7 @@ International tech hiring leads and engineering managers value confidence, clari
      * If applying for Data Engineer / Data Modeling / BI roles: Lead with data engineering pipelines, transformation workflows (dbt, DuckDB, SQL, Pandas), and robust system architecture in Python and C#/.NET. Reference data modeling and pipeline tooling (dbt, Dagster, Snowflake, relational databases), supported by shipping commercial software to Steam (No Final Run) and operational team leadership.
        Example benchmark: "Data and software developer focused on data modeling, transformation pipelines (dbt, DuckDB, SQL, Pandas), and robust backend systems in Python and C#/.NET. Built end-to-end data workflows, shipped commercial software to Steam (No Final Run), and brings several years of operational team leadership."
      * If applying for C# / .NET / Backend roles: Lead with C#/.NET backend architecture, multithreading, and performance optimization.
-       Example benchmark: "C#/.NET developer focused on backend architecture, performance optimization, and multithreaded systems. Shipped commercial software to Steam (No Final Run), with an earlier background in operational team leadership and fast-paced prioritization."
+       Example benchmark: "C#/.NET developer focused on backend architecture, performance optimization, and multithreaded systems. Shipped commercial software to Steam (No Final Run), with an operational background in drift and team leadership accustomed to fast prioritization in critical situations."
      * If applying for Fullstack / Broad IT roles: Balance modern fullstack delivery (Python/C#, React/Next.js, SQL/Docker) and operational reliability.
    - Hard Rules:
      * NEVER write "with a strong foundation in..."
@@ -680,7 +680,7 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
    - ❌ "Lockas av er unika företagskultur / ambition att vara Sveriges bästa arbetsgivare / flexibla lönemodell" (upprepa ALDRIG företagets marknadsföringsfloskler som en papegoja)
    - ❌ "Jag är övertygad om att min unika kombination av..." / "unik förmåga"
    - ❌ "Som spindeln i nätet / brinner för / hungrig på nya utmaningar / dynamisk lagspelare"
-   - ❌ "Agil problemlösning / agilt mindset / agilt tänk / lösningsorienterad / driven och engagerad / många bollar i luften" (tomma konsult- och HR-klyschor)
+   - ❌ "Agil problemlösning / agilt mindset / agilt tänk / lösningsorienterad / driven och engagerad / många bollar i luften / högt tempo / under högt tempo / i ett högt tempo / i en dynamisk miljö" (tomma konsult-, HR- och AI-klyschor)
    - ❌ "Vilket ger en stark förmåga till..." / "kombinerar X med Y vilket ger en unik förmåga..." (undvik distanserade, säljande konstruktioner; formulera konkreta handlingar, arbetssätt och leveransvärde direkt)
    - ❌ "Erfaren C#/.NET-utvecklare" eller annan uppblåst senioritetstitel (använd istället sakliga och nivåanpassade titlar som "C#/.NET-utvecklare" eller "Systemutvecklare inom C#/.NET" och låt skarpa meriter som flertrådning och Steam-release bevisa djupet).
    - ❌ Att tillskriva restaurangledarskap förmågan att "driva projekt från kod till drift" (kod till drift härrör uteslutande från de tekniska mjukvaruprojekten).
@@ -689,7 +689,7 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
 2. RIKTLINJER FÖR PERSONLIGT BREV:
    - Inledning: Gå RAKT PÅ SAK i första meningen anpassad till rollens kärna (t.ex. vid GenAI: "Jag söker rollen som [Roll] hos er på [Företag]. Mitt fokus ligger på tillämpade GenAI- och RAG-system från hämtningslogik till fungerande gränssnitt, med en stabil ingenjörsgrund i Python och C#..."; vid C#/.NET: "Jag söker rollen som [Roll] hos er på [Företag]. Mitt fokus ligger på C#/.NET, systemarkitektur och prestandaoptimering, med erfarenhet av att bygga och släppa kommersiell mjukvara på Steam (No Final Run)...").
    - "Show, Don't Tell" (STAR): Referera till konkreta projekt ur portfolion/erfarenheten (t.ex. No Final Run, Oxide Arena, JobScope, Orbislinks RAG-agenter, PNS, examensarbetet). Förklara VAD som byggdes, vilka utmaningar som löstes (t.ex. prestandaoptimering, nätverkssynkronisering, flertrådning, trådsäkerhet, API-design) och hur det relaterar till annonsens krav.
-   - Tidigare ledarerfarenhet (fram till 2024): Presentera den som flerårig erfarenhet av operativ drift och teamledarskap i högintensiva miljöer – stresstålighet under hög press, tydlig och prestigelös teamkommunikation, snabba prioriteringar samt vana att ta ansvar för drift, kvalitet och leverans. Blås INTE upp det till "10+ års operativt ledarskap" och undvik konsultlingo som "krishantering".
+   - Tidigare ledarerfarenhet (fram till 2024): Presentera den som flerårig erfarenhet av operativ drift och teamledarskap – stresstålighet i skarpa lägen, tydlig och prestigelös teamkommunikation, snabba prioriteringar samt vana att ta ansvar för drift, kvalitet och leverans. Blås INTE upp det till "10+ års operativt ledarskap" och undvik floskler som "krishantering", "högintensiva miljöer" eller "högt tempo".
    - Proaktiv teknikmatchning: Vid nya databaser/ramverk – lyft kandidatens gedigna SQL- och mjukvarugrund och snabba inlärningsförmåga utan att be om ursäkt.
    - Avslutning: Saklig, artig och professionell (1-2 meningar) utan svulstiga löften.
    - Omfång: Håll brevet koncist och lättläst (ca 3-4 korta, kärnfulla stycken).
@@ -698,11 +698,11 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
    - Längd: Exakt 2 kärnfulla, sakliga meningar. Hög teknisk densitet, aktiva verb och absolut noll HR-floskler.
    - DYNAMISK POSITIONERING (Anpassa primär titel och fokus efter annonsens inriktning):
      * Vid GenAI / AI / Python-roller: Led med tillämpad AI (RAG-arkitektur, agentiska arbetsflöden, Python, multimodala modeller) och solid systemutveckling. Lyft skarpa system (Orbislinks RAG-pipeline, examensarbetet med multimodal RAG på Azure, JobScope) och låt C#-grunden och Steam-releasen (No Final Run) samt operativt teamledarskap visa bredd och ingenjörsdisciplin.
-       Exempel på förebild: "AI- och systemutvecklare med fokus på tillämpad AI (RAG-pipelines, agentiska flöden) och robust systemarkitektur i Python och C#/.NET. Har byggt multimodala RAG-system på Azure, släppt kommersiell mjukvara på Steam (No Final Run) och har flerårig erfarenhet av operativt teamledarskap under högt tempo."
-     * Vid Data Engineer / Datamodellering / BI-roller: Led med datateknik, datamodellering (dbt, DuckDB, SQL, Snowflake, Dagster, Pandas) och robust systemarkitektur i Python och C#/.NET. Lyft praktisk erfarenhet av datatransformation och databasoptimering, kompletterat med kommersiell mjukvarurelease på Steam (No Final Run) och flerårig erfarenhet av operativt teamledarskap.
-       Exempel på förebild: "Data- och systemutvecklare med fokus på datamodellering, transformationsflöden (dbt, DuckDB, SQL, Pandas) och robust backendutveckling i Python och C#/.NET. Har byggt ändamålsenliga datapipelines, släppt kommersiell mjukvara på Steam (No Final Run) och har flerårig erfarenhet av operativt teamledarskap under högt tempo."
+       Exempel på förebild: "AI- och systemutvecklare med fokus på tillämpad AI (RAG-pipelines, agentiska flöden) och robust systemarkitektur i Python och C#/.NET. Har byggt multimodala RAG-system på Azure, släppt kommersiell mjukvara på Steam (No Final Run) och har flerårig erfarenhet av operativ drift och teamledarskap."
+     * Vid Data Engineer / Datamodellering / BI-roller: Led med datateknik, datamodellering (dbt, DuckDB, SQL, Snowflake, Dagster, Pandas) och robust systemarkitektur i Python och C#/.NET. Lyft praktisk erfarenhet av datatransformation och databasoptimering, kompletterat med kommersiell mjukvarurelease på Steam (No Final Run) och flerårig erfarenhet av operativ drift och teamledarskap.
+       Exempel på förebild: "Data- och systemutvecklare med fokus på datamodellering, transformationsflöden (dbt, DuckDB, SQL, Pandas) och robust backendutveckling i Python och C#/.NET. Har byggt ändamålsenliga datapipelines, släppt kommersiell mjukvara på Steam (No Final Run) och har flerårig erfarenhet av operativ drift och teamledarskap."
      * Vid C#/.NET / Backend-roller: Led med backendarkitektur, flertrådning och prestandaoptimering.
-       Exempel på förebild: "C#/.NET-utvecklare med fokus på backendarkitektur, flertrådning och prestandaoptimering. Har byggt och släppt kommersiell mjukvara på Steam (No Final Run), med en tidigare bakgrund inom operativt teamledarskap och snabba prioriteringar i högt tempo."
+       Exempel på förebild: "C#/.NET-utvecklare med fokus på backendarkitektur, flertrådning och prestandaoptimering. Har byggt och släppt kommersiell mjukvara på Steam (No Final Run), med bakgrund inom operativ drift och teamledarskap med vana för snabba prioriteringar i skarpa lägen."
      * Vid Fullstack / Breda IT-roller: Balansera modern webb/backend (React/Next.js, Python, C#, SQL, Docker) och operativ driftsäkerhet.
    - Hårda regler:
      * Skriv ALDRIG "med en gedigen grund inom..."
@@ -723,7 +723,7 @@ Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autentic
        * ❌ "leveranssäkerhet" / "pålitlig leverans" / "reliable delivery"
        * ❌ "brinner för..." / "med stor entusiasm ansöker jag..."
        * ❌ "unik kombination av..." / "unik förmåga..."
-       * ❌ "spindeln i nätet" / "lösningsorienterad" / "agilt mindset" / "många bollar i luften"
+       * ❌ "spindeln i nätet" / "lösningsorienterad" / "agilt mindset" / "många bollar i luften" / "högt tempo"
        * ❌ Inga ursäkter ("även om jag saknar...") och ingen uppblåst senioritet.
      - Innehåll och struktur:
        1. Hälsningsfras: "Hej [Kontaktpersonens förnamn om namngiven i annonsen, annars Rekryteringsteamet],"
