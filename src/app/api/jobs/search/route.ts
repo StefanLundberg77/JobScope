@@ -5,7 +5,13 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { searchJobTech, OCCUPATION_FIELD_DATA_IT, normalizeJobTechWorkplaceModel } from "@/lib/jobtech";
+import {
+  searchJobTech,
+  OCCUPATION_FIELD_DATA_IT,
+  DEVELOPER_OCCUPATION_GROUPS,
+  isExcludedJobTitle,
+  normalizeJobTechWorkplaceModel,
+} from "@/lib/jobtech";
 import { searchLinkedInJobs } from "@/lib/linkedin";
 import { UnifiedJobHit } from "@/lib/types";
 
@@ -19,6 +25,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
     const broadIt = searchParams.get("broadIt") !== "false";
+    // When broad developer search without specific query is active, target developer & QA occupation groups
+    const occupationGroups = !query && broadIt ? DEVELOPER_OCCUPATION_GROUPS : undefined;
     const occupationField = broadIt ? OCCUPATION_FIELD_DATA_IT : undefined;
     const location = (searchParams.get("location") || "goteborg") as
       | "goteborg"
@@ -45,11 +53,10 @@ export async function GET(req: Request) {
       : negativeJtTerms;
 
     const negativeLiTerms = excludeWords.map((w) => `NOT ${w}`).join(" ");
+    const liDeveloperBase = 'Utvecklare OR Developer OR "Software Engineer" OR AI OR "Data Engineer" OR .NET OR Python OR Fullstack';
     const liQuery = query
       ? `${query} ${negativeLiTerms}`.trim()
-      : negativeLiTerms
-      ? `IT OR Utvecklare ${negativeLiTerms}`.trim()
-      : "";
+      : `${liDeveloperBase} ${negativeLiTerms}`.trim();
 
     let hits: UnifiedJobHit[] = [];
     let totalCount = 0;
@@ -81,7 +88,16 @@ export async function GET(req: Request) {
 
     async function fetchJobTechHits(): Promise<{ hits: UnifiedJobHit[]; total: number }> {
       if (!remote) {
-        const data = await searchJobTech({ query: jtQuery || undefined, occupationField, location, remote: false, limit, offset, sort: jtSort });
+        const data = await searchJobTech({
+          query: jtQuery || undefined,
+          occupationField,
+          occupationGroups,
+          location,
+          remote: false,
+          limit,
+          offset,
+          sort: jtSort,
+        });
         const normalized = (data.hits || []).map((h) => ({
           ...h,
           workplace_model: normalizeJobTechWorkplaceModel(h.workplace_model, h.headline, false),
@@ -92,8 +108,26 @@ export async function GET(req: Request) {
 
       // Additive remote search: query local jobs AND nationwide remote jobs in parallel
       const [localRes, remoteRes] = await Promise.allSettled([
-        searchJobTech({ query: jtQuery || undefined, occupationField, location, remote: false, limit, offset, sort: jtSort }),
-        searchJobTech({ query: jtQuery || undefined, occupationField, location: "all", remote: true, limit, offset: 0, sort: jtSort }),
+        searchJobTech({
+          query: jtQuery || undefined,
+          occupationField,
+          occupationGroups,
+          location,
+          remote: false,
+          limit,
+          offset,
+          sort: jtSort,
+        }),
+        searchJobTech({
+          query: jtQuery || undefined,
+          occupationField,
+          occupationGroups,
+          location: "all",
+          remote: true,
+          limit,
+          offset: 0,
+          sort: jtSort,
+        }),
       ]);
 
       const localHits: UnifiedJobHit[] =
@@ -156,18 +190,13 @@ export async function GET(req: Request) {
       totalCount = jt.total + li.total;
     }
 
-    // Filter out hits where headline matches any excluded keyword
-    if (excludeWords.length > 0) {
-      const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const excludeRegexes = excludeWords.map(
-        (w) => new RegExp(`(^|\\b|\\s)${escapeRegExp(w)}(\\b|\\s|$)`, "i")
-      );
-      hits = hits.filter((h) => {
-        const headline = h.headline || "";
-        return !excludeRegexes.some((rx) => rx.test(headline));
-      });
-      totalCount = Math.min(totalCount, hits.length);
-    }
+    // Filter out hits matching excluded patterns or user-supplied exclusion keywords
+    hits = hits.filter((h) => {
+      const headline = h.headline || "";
+      const occLabel = h.occupation?.label;
+      return !isExcludedJobTitle(headline, excludeWords, occLabel);
+    });
+    totalCount = Math.min(totalCount, hits.length);
 
     // Query blocked jobs and saved listings from database
     const [blockedRecords, dismissedJobs, savedJobs] = await Promise.all([

@@ -47,9 +47,23 @@ interface SearchSessionCache {
 }
 
 /**
- * Predefined keywords commonly excluded to filter out senior or lead positions.
+ * Predefined keywords commonly excluded to filter out senior, lead, IT support, embedded, or ERP positions.
  */
-const EXCLUDE_PRESETS = ["Senior", "Erfaren", "Lead", "Principal", "Arkitekt"];
+const EXCLUDE_PRESETS = [
+  "Senior",
+  "Erfaren",
+  "Lead",
+  "Arkitekt",
+  "IT-tekniker",
+  "Support",
+  "Product Owner",
+  "Produktägare",
+  "Testledare",
+  "Embedded",
+  "C++",
+  "SAP",
+  "Dynamics",
+];
 
 /**
  * Predefined geographic search scopes.
@@ -115,16 +129,17 @@ interface JobSearchViewProps {
 }
 
 /**
- * Predefined quick-filter presets targeting key Swedish IT sectors.
+ * Predefined quick-filter presets targeting key Swedish developer sectors.
  */
 const QUICK_IT_FILTERS = [
-  { label: "Alla IT-jobb", query: "", broad: true },
+  { label: "Alla utvecklarjobb", query: "", broad: true },
   { label: "GenAI & RAG", query: "GenAI AI RAG", broad: true },
   { label: "Python & AI", query: "Python AI", broad: true },
   { label: "Data Engineering", query: '"Data Engineer" Datamodellering', broad: true },
   { label: "C# / .NET", query: "C# .NET", broad: true },
+  { label: "Backend & API", query: "Backend API", broad: true },
   { label: "Fullstack", query: "Fullstack", broad: true },
-  { label: "Support & Drift", query: "Support Drift", broad: true },
+  { label: "Spel & Unity", query: "Unity Spelutvecklare", broad: true },
   { label: "DevOps & Cloud", query: "DevOps Cloud", broad: true },
   { label: "Test & QA", query: "Test QA", broad: true },
 ];
@@ -741,7 +756,7 @@ export function JobSearchView({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Sök IT-jobb (lämna tomt för alla IT-roller, eller t.ex. C#, Python, Support, DevOps)..."
+              placeholder="Sök utvecklarjobb (lämna tomt för alla utvecklarroller, eller t.ex. C#, Python, Fullstack, DevOps)..."
               className="w-full rounded-xl border border-neutral-300 pl-10 pr-9 py-2.5 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             />
             {query && (

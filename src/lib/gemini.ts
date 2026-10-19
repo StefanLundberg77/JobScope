@@ -353,39 +353,39 @@ Du är en senior teknisk rekryterare och ATS-expert.
 Gör en objektiv matchningsanalys mellan kandidatens Master-CV och en specifik jobbannons.
 
 VIKTIG PROFILKONTEXT & SÖKINSTÄLLNING:
-- Kandidaten har en bred teknisk grund (C#/.NET, Python, SQL, REST API-design, Docker/Linux, AI/RAG, databaser) kombinerat med flerårig beprövad operativ erfarenhet av drift, samordning och teamledarskap (driftansvarig/chef fram till 2024).
-- Kandidaten söker BRETT och är fullt öppen för hela spektrumet av roller inom IT och tech:
-  * Mjukvaruutveckling (backend, frontend, fullstack, junior utvecklare, systemutvecklare)
-  * Applikationsdrift, systemförvaltning, IT-tekniker och drifttekniker
-  * IT-support, servicedesk, applikationssupport och teknisk kundsupport
-  * Testning, kvalitetssäkring (QA) och mjukvaruverifiering
-  * DevOps, moln (Cloud), infrastruktur och nätverk
-  * Datateknik, datamodellering, data engineering, BI och AI/automation
-  * IT-konsult och teknisk projektkoordinering
-- BEDÖMNINGSPRINCIP FÖR MATCHNING & ATS-SCORING (INGA GLÄDJEKALKYLER):
-  * Var fullständigt objektiv, saklig och sträng. Sätt ALDRIG uppblåsta glädjebetyg.
-  * Kandidaten söker brett inom IT och har en stark teknisk grund (C#/.NET, Python, SQL, REST API, Docker/Linux, AI/RAG, databaser) samt beprövat operativt ledarskap/drift.
-  * Du måste dock skilja stenhårt mellan faktisk bevisad yrkeserfarenhet under relevant titel kontra teoretisk/projektbaserad kunskap eller överförbara färdigheter.
+- Kandidatens primära kvalifikationer och inriktning är mjukvaruutveckling, tillämpad AI och datateknik:
+  * System- och mjukvaruutveckling (C#/.NET, Python, TypeScript/React/Next.js, FastAPI, Flask, REST API:er, objektorienterad arkitektur)
+  * Tillämpad AI / GenAI (RAG-arkitektur, LLM-agenter, PydanticAI, vektordatabaser, multimodal retrieval, Python)
+  * Data Engineering & Analytics (SQL, dbt, DuckDB, Pandas, Snowflake, relationsdatabaser och pipeline-flöden)
+  * Spelutveckling & Simulering (Unity, C#, nätverkssynkronisering, flertrådning, prestandaoptimering, Steamworks)
+  * Mjukvarunära DevOps, Linux och QA/Test (Docker, Nginx, WSL2/Linux, enhetstestning, automatiserade tester)
+- Kandidaten har även flerårig beprövad operativ erfarenhet av teamledarskap och driftansvar (fram till 2024), vilket är en överförbar styrka för samarbete, problemlösning och prioritering.
+
+BEDÖMNINGSPRINCIP FÖR MATCHNING & ATS-SCORING (INGA GLÄDJEKALKYLER):
+* Var fullständigt objektiv, saklig och sträng. Sätt ALDRIG uppblåsta glädjebetyg.
+* Kandidaten är en mjukvaruingenjör/utvecklare och söker uteslutande utvecklings- och ingenjörsroller.
+* Skilj stenhårt mellan faktisk bevisad yrkeserfarenhet under relevant utvecklartitel kontra teoretisk/projektbaserad kunskap eller överförbara ledarskapsmeriter.
 
 STRIKT POÄNGSKALA & KALIBRERING (0-100):
 * 85–100% (Exceptionell direktmatchning):
-  - Uppfyller i princip ALLA skallkrav OCH har dokumenterad, formell yrkeserfarenhet i exakt eller direkt närliggande roll.
+  - Uppfyller i princip ALLA skallkrav OCH har dokumenterad, formell yrkeserfarenhet i exakt eller direkt närliggande utvecklarroll.
   - Behärskar produktionstester, arkitektur och kärnstacken.
 * 70–84% (Stark matchning med mindre luckor):
-  - Uppfyller alla centrala tekniska skallkrav OCH har relevant IT-yrkeserfarenhet.
+  - Uppfyller alla centrala tekniska skallkrav OCH har relevant IT-/utvecklaryrkeserfarenhet.
   - Mindre luckor i enstaka önskemål eller något färre erfarenhetsår än annonsens idealkrav.
 * 50–69% (Partiell / Överförbar matchning):
-  - Har god teknisk grund (t.ex. programmering, SQL, relationsdatabaser, egna projekt) men SAKNAR formell yrkeserfarenhet i den specifika rollen, eller saknar centrala verktyg som efterfrågas (t.ex. BI-rapporteringsverktyg vid BI-roller, Kubernetes/Terraform vid DevOps).
-  - Detta är det korrekta och ärliga spannet när kandidaten har god potential och relevanta sidoprojekt men saknar anställningsår under titeln.
+  - Har god teknisk grund (t.ex. programmering, SQL, relationsdatabaser, egna mjukvaruprojekt) men SAKNAR formell yrkeserfarenhet i den specifika rollen, eller saknar centrala verktyg som efterfrågas (t.ex. BI-rapporteringsverktyg vid BI-roller, Kubernetes/Terraform vid DevOps).
+  - Detta är det korrekta och ärliga spannet när kandidaten har god utvecklarpotential och relevanta projekt men saknar anställningsår under titeln.
 * 30–49% (Svag matchning):
-  - Betydande kompetensgap, felaktig senioritetsnivå (t.ex. kräver 5-8 års specialistledarskap), eller en helt annan teknisk inriktning.
-* < 30% (Ej relevant):
-  - Rollen matchar inte kandidatens profil.
+  - Betydande kompetensgap, felaktig senioritetsnivå (t.ex. kräver 5-8 års specialistledarskap), eller en avvikande teknisk inriktning.
+* < 30% (Ej relevant / Fel rollkategori):
+  - Rollen matchar inte kandidatens profil eller faller utanför mjukvaruutveckling.
 
 OBLIGATORISKA POÄNGAVDRAG:
+- FEL ROLLKATEGORI (STRIKT MAXTAK < 35%): Om annonsen avser renodlad IT-tekniker, 1st/2nd line support, servicedesk, nätverkstekniker, fälttekniker, Windows Server/Active Directory-administration, hårdvarunära Embedded C/C++, icke-kodande ledningsroller (Product Owner/Produktägare, Testledare, Projektledare) eller affärssystemkonsult (SAP, Dynamics, ERP): Sätt betyget under 35%. Detta är fel rollkategori för kandidatens kvalifikationer.
 - Saknad formell yrkeserfarenhet: Om annonsen förutsätter eller efterfrågar yrkeserfarenhet i rollen och kandidaten endast har projekt/självstudier/skolmeriter: dra automatiskt av minst 15–25 procentenheter från maxpoängen.
 - Saknade centrala domänverktyg: Om rollens primära verktyg/domäner (t.ex. Power BI/Tableau vid BI-roller, cloud-infrastruktur) saknas i profilen: dra automatiskt av minst 10–15 procentenheter.
-- Överförbara meriter (operativ drift, problemlösning, generell SQL, mjukvarubakgrund): Placera dessa i transferableSkills och låt dem lyfta kandidaten till en solid partiell match (50–65%), men blås ALDRIG upp betyget till 70–90% om yrkeserfarenhet och kärnverktyg saknas.
+- Överförbara meriter (operativ drift, problemlösning, generell SQL, mjukvarubakgrund): Placera dessa i transferableSkills och låt dem lyfta kandidaten till en solid partiell match (50–65%) för relevanta utvecklarroller, men blås ALDRIG upp betyget till 70–90% om yrkeserfarenhet och kärnverktyg saknas.
 
 JOBBANNONS:
 Titel: ${job.title}

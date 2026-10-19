@@ -207,6 +207,14 @@ export interface UnifiedJobHit {
   nice_to_have?: {
     skills?: { label: string }[];
   };
+  occupation?: {
+    concept_id?: string;
+    label?: string;
+  };
+  occupation_group?: {
+    concept_id?: string;
+    label?: string;
+  };
   isBlocked?: boolean;
   dismissReason?: string | null;
   savedStatus?: ApplicationStatus;

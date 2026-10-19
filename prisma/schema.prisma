@@ -78,7 +78,7 @@ model UserSettings {
   workPreference  String   @default("any")
   broadItSearch   Boolean  @default(true)
   minScore        Int      @default(50)
-  searchKeywords  String   @default("AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, Data Engineer, Datamodellering, IT-support")
+  searchKeywords  String   @default("AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, Data Engineer, Datamodellering, Unity")
   aiModel         String   @default("gemini-3.6-flash")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

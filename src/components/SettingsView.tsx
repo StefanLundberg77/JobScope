@@ -32,7 +32,7 @@ export function SettingsView() {
   const [broadItSearch, setBroadItSearch] = useState(true);
   const [minScore, setMinScore] = useState(50);
   const [searchKeywords, setSearchKeywords] = useState(
-    "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, Data Engineer, Datamodellering, IT-support"
+    "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, Data Engineer, Datamodellering, Unity"
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -358,10 +358,10 @@ export function SettingsView() {
               <div className="text-xs">
                 <span className="font-semibold text-neutral-900 dark:text-white flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                  Bred IT-sökning som standard (Hela Data/IT-yrkesområdet)
+                  Bred utvecklarsökning som standard (Mjukvara, AI & Data)
                 </span>
                 <p className="text-neutral-600 dark:text-neutral-300 mt-1 leading-relaxed">
-                  Söker automatiskt över hela IT-spektrat (systemutveckling, applikationsdrift, teknisk support, QA/test, moln/DevOps och data). AI-matchningen bedömer överförbara tekniska färdigheter och problemlösningsförmåga generöst.
+                  Söker automatiskt över mjukvaruutveckling, tillämpad AI, data engineering och kvalitetssäkring (QA). Irrelevanta roller som hårdvarunära IT-tekniker, helpdesk/support, Product Owner, Embedded C++ och affärssystem (SAP/Dynamics) filtreras bort automatiskt.
                 </p>
               </div>
             </label>
@@ -433,11 +433,11 @@ export function SettingsView() {
               type="text"
               value={searchKeywords}
               onChange={(e) => setSearchKeywords(e.target.value)}
-              placeholder="Utvecklare, C#, .NET, Python, IT, Support, Fullstack, DevOps"
+              placeholder="Utvecklare, C#, .NET, Python, Fullstack, DevOps, Data Engineer, AI"
               className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             />
             <p className="mt-1 text-[11px] text-neutral-400">
-              Kommaseparerad lista av teknologier och IT-kategorier som bevakas.
+              Kommaseparerad lista av teknologier och utvecklarkategorier som bevakas.
             </p>
           </div>
         </div>

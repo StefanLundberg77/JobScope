@@ -25,7 +25,7 @@ export async function GET() {
           workPreference: "any",
           broadItSearch: true,
           minScore: 50,
-          searchKeywords: "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, IT-support",
+          searchKeywords: "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, Data Engineer, Datamodellering, Unity",
         },
       });
     }
@@ -94,7 +94,7 @@ export async function PUT(req: Request) {
         workPreference: workPreference || "any",
         broadItSearch: broadItSearch !== undefined ? Boolean(broadItSearch) : true,
         minScore: minScore !== undefined ? Number(minScore) : 50,
-        searchKeywords: searchKeywords || "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, IT-support",
+        searchKeywords: searchKeywords || "AI, GenAI, RAG, Python, C#, .NET, Systemutvecklare, Fullstack, DevOps, Data Engineer, Datamodellering, Unity",
       },
     });
 

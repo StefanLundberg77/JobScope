@@ -6,7 +6,14 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { searchJobTech, fetchJobTechAd, OCCUPATION_FIELD_DATA_IT, normalizeJobTechWorkplaceModel } from "@/lib/jobtech";
+import {
+  searchJobTech,
+  fetchJobTechAd,
+  OCCUPATION_FIELD_DATA_IT,
+  DEVELOPER_OCCUPATION_GROUPS,
+  isExcludedJobTitle,
+  normalizeJobTechWorkplaceModel,
+} from "@/lib/jobtech";
 import { searchLinkedInJobs, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
 import { parseJobAdText } from "@/lib/parser";
@@ -61,16 +68,14 @@ export async function POST(req: Request) {
       ? body.exclude
       : typeof body.exclude === "string"
       ? body.exclude.split(",").map((s: string) => s.trim()).filter(Boolean)
-      : ["Senior", "Erfaren"];
+      : [];
     const negativeJtTerms = excludeWords.map((w) => `-${w}`).join(" ");
     const negativeLiTerms = excludeWords.map((w) => `NOT ${w}`).join(" ");
 
     const jtScanQuery = query
       ? `${query} ${negativeJtTerms}`.trim()
       : negativeJtTerms;
-    const liScanBase = broadIt
-      ? 'IT OR Utvecklare OR Developer OR AI OR GenAI OR "Data Engineer"'
-      : settings?.targetRole || "Systemutvecklare & AI-utvecklare";
+    const liScanBase = 'Utvecklare OR Developer OR "Software Engineer" OR AI OR "Data Engineer" OR .NET OR Python OR Fullstack';
     const liScanQuery = query
       ? `${query} ${negativeLiTerms}`.trim()
       : `${liScanBase} ${negativeLiTerms}`.trim();
@@ -79,13 +84,14 @@ export async function POST(req: Request) {
       searchJobTech({
         query: jtScanQuery || undefined,
         occupationField: broadIt ? OCCUPATION_FIELD_DATA_IT : undefined,
+        occupationGroups: isDefaultBroadSweep ? DEVELOPER_OCCUPATION_GROUPS : undefined,
         location,
         remote,
         limit: 25,
       }),
       isDefaultBroadSweep
         ? searchJobTech({
-            query: `\"Data Engineer\" Datamodellering ${negativeJtTerms}`.trim(),
+            query: `"Data Engineer" Datamodellering ${negativeJtTerms}`.trim(),
             occupationField: OCCUPATION_FIELD_DATA_IT,
             location,
             remote,
@@ -136,11 +142,6 @@ export async function POST(req: Request) {
       )
     );
 
-    const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const excludeRegexes = excludeWords.map(
-      (w) => new RegExp(`(^|\\b|\\s)${escapeRegExp(w)}(\\b|\\s|$)`, "i")
-    );
-
     const candidates: Array<{
       externalId: string;
       source: "jobtech" | "linkedin";
@@ -150,7 +151,7 @@ export async function POST(req: Request) {
     }> = [];
 
     for (const h of liHits) {
-      if (excludeRegexes.some((r) => r.test(h.headline))) continue;
+      if (isExcludedJobTitle(h.headline, excludeWords, h.occupation?.label)) continue;
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
       if (
         !existingIds.has(h.id) &&
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
     }
 
     for (const h of jtHits) {
-      if (excludeRegexes.some((r) => r.test(h.headline))) continue;
+      if (isExcludedJobTitle(h.headline, excludeWords, h.occupation?.label)) continue;
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
       if (
         !existingIds.has(h.id) &&
