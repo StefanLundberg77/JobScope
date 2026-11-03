@@ -30,11 +30,11 @@ const profileData = {
       company: "Nordstern Studio (Northhack Media)",
       role: "Game Director & Utvecklare",
       location: "Göteborg",
-      startDate: "2024",
+      startDate: "2025-12",
       endDate: "",
       current: true,
       description:
-        "Leder den kreativa visionen, speldesignen och den tekniska arkitekturen bakom debut-titeln \"No Final Run\", ett actionfyllt roguelite lanserat på Steam.",
+        "Leder den kreativa visionen, speldesignen och den tekniska arkitekturen bakom debut-titeln \"No Final Run\", ett actionfyllt roguelite lanserat på Steam (fortsättning efter avslutad LIA).",
       achievements: [
         "Systemarkitektur & Spelmekanik: Utvecklade centrala spelsystem, procedurgenerering, vapenbalansering och fiende-AI i Unity och C#.",
         "Prestandaoptimering: Profilerade minnesallokering och render-loops för att säkerställa stabil framerate vid intensiva partikelflöden och stora objektmängder.",
@@ -55,25 +55,31 @@ const profileData = {
       company: "Orbislinks",
       role: "LIA 2: Fullstack- & AI-utvecklare",
       location: "Göteborg",
-      startDate: "2025-11",
-      endDate: "2026-02",
+      startDate: "2026-02",
+      endDate: "2026-05",
       current: false,
       description:
-        "Arbetade brett med utvecklingen av Orbislinks plattform med fokus på intelligenta tjänster, API-integrationer och fullstack.",
+        "Självständigt fullstack- och arkitekturansvar inom utvecklingen av bolagets internationella logistik- och e-handelsplattform, med fokus på reaktiva gränssnitt, asynkrona kösystem, RAG och API-integrationer.",
       achievements: [
-        "RAG-Chatbot & Agenter: Designade och driftsatte en chatbot-pipeline (Flask/Python) som integrerade företagets interna API:er och externa flygplatsportaler (Swedavia/Aena) med web search som fallback.",
-        "B2P2P Marknadsplats (MVP): Ansvarade för utvecklingen av MVP-arkitekturen för marknadsplatsen (KYC-verifiering och säkra transaktionsflöden).",
-        "Web Scraping & DevOps: Byggde robusta webscrapers för automatisk datainsamling och satte upp containeriserade utvecklingsmiljöer i WSL/Linux, Docker och Nginx."
+        "Fullstack Karriärsida (Live) & Marknadsplats (React): Designade, byggde och driftsatte företagets officiella karriärsida end-to-end i skarp produktion (React, Flask, autentisering och databaslagring i MySQL). Byggde även frontend-vyer i React för säljare och köpare på företagets logistikmarknadsplats.",
+        "Logistikarkitektur & Asynkrona AI-insikter: Utvecklade datamodeller och API-arkitektur för en distribuerad crowd-shipping-marknadsplats (kopplade samman säljare, speditörer och resenärer). Implementerade asynkron AI-analys av produktrecensioner via Celery-workers och LLM, samt Alembic-migrationer och logistikintegrationer (Sendcloud).",
+        "RAG-Agent, Vektordatabas & DevOps: Implementerade en RAG-agent för flygplatsinformation med integrerad vektordatabas och embeddings. Utvecklade webscrapers för flygplatsportaler (Swedavia/SPANA) och konfigurerade containeriserade miljöer i Docker, Nginx och WSL2/Linux."
       ],
       skills: [
+        "React",
+        "JavaScript",
         "Python",
         "Flask",
+        "MySQL",
         "RAG",
-        "LLM-agenter",
+        "Vektordatabaser",
+        "Celery",
+        "RabbitMQ",
         "Docker",
         "Nginx",
+        "Alembic",
+        "Sendcloud API",
         "WSL2 / Linux",
-        "REST API",
         "Web Scraping"
       ]
     },
@@ -82,8 +88,8 @@ const profileData = {
       company: "Northhack Media (Oxide Arena)",
       role: "LIA 1: Spelutvecklare & C#-backend",
       location: "Göteborg",
-      startDate: "2025-02",
-      endDate: "2025-04",
+      startDate: "2025-10",
+      endDate: "2025-12",
       current: false,
       description:
         "Fokuserade på backend-programmering, flertrådning, nätverkssynkronisering och fysikoptimering för flerspelarspelet \"Oxide Arena\" i Unity och C#.",
@@ -106,11 +112,11 @@ const profileData = {
       company: "Stigbergets Restaurang AB, Nefertiti m.fl.",
       role: "Restaurang- & Barchef / Driftansvarig",
       location: "Göteborg",
-      startDate: "2014",
+      startDate: "2018",
       endDate: "2024",
       current: false,
       description:
-        "Flerårig erfarenhet av operativ drift, personalansvar (team upp till 20 medarbetare), schemaläggning, ekonomisk uppföljning och gästupplevelse i högintensiva miljöer.",
+        "Flerårig erfarenhet (2018–2024) av operativ drift och chefsroller med personalansvar (team upp till 20 medarbetare), schemaläggning, ekonomisk uppföljning och kvalitetsansvar.",
       achievements: [
         "Överförbara styrkor: Stresstålighet och prioritering under hård tidspress, tydlig teamkommunikation, konflikthantering och strukturerat kvalitetsarbete.",
         "Ledaransvar: Ledde team på upp till 20 personer med schemaläggning, budget, inventering och leverantörskontakter."
@@ -172,6 +178,8 @@ const profileData = {
         "Entity Framework Core",
         "Dapper",
         "Alembic",
+        "Celery",
+        "RabbitMQ",
         "Node.js",
         "RESTful API Design"
       ]
