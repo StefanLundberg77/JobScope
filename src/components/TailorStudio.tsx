@@ -102,6 +102,7 @@ const STUDIO_NOTE_TEMPLATES = [
  */
 interface TailorStudioProps {
   jobId: string;
+  autoOptimize?: boolean;
   onBack: () => void;
   onJobUpdated?: () => void;
 }
@@ -113,9 +114,11 @@ interface TailorStudioProps {
  */
 export function TailorStudio({
   jobId,
+  autoOptimize = false,
   onBack,
   onJobUpdated,
 }: TailorStudioProps) {
+  const autoOptimizeTriggeredRef = React.useRef(false);
   const [job, setJob] = useState<JobItem | null>(null);
   const [masterProfile, setMasterProfile] = useState<MasterProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -204,6 +207,16 @@ export function TailorStudio({
           } else if (j.notes) {
             setNotes(j.notes);
           }
+
+          // Auto-trigger AI optimization if requested and no tailored version exists
+          if (
+            autoOptimize &&
+            (!j.applications || j.applications.length === 0) &&
+            !autoOptimizeTriggeredRef.current
+          ) {
+            autoOptimizeTriggeredRef.current = true;
+            handleGenerateTailored(j);
+          }
         }
 
         if (profileRes.ok) {
@@ -223,7 +236,7 @@ export function TailorStudio({
   }, [jobId]);
 
   // AI Tailor trigger
-  const handleGenerateTailored = async () => {
+  const handleGenerateTailored = async (targetJob?: JobItem) => {
     setGenerating(true);
     setErrorMessage(null);
     try {
@@ -251,13 +264,15 @@ export function TailorStudio({
         setActiveLanguage(data.language);
       }
 
-      if (job) {
-        setJob({
-          ...job,
-          status: job.status === "saved" ? "tailored" : job.status,
-          matchScore: data.matchAnalysis?.score,
-        });
-      }
+      setJob((prev) => {
+        const base = prev || targetJob;
+        if (!base) return null;
+        return {
+          ...base,
+          status: base.status === "saved" ? "tailored" : base.status,
+          matchScore: data.matchAnalysis?.score ?? base.matchScore,
+        };
+      });
       if (onJobUpdated) onJobUpdated();
     } catch (err: unknown) {
       setErrorMessage(
@@ -553,7 +568,7 @@ export function TailorStudio({
           </div>
 
           <button
-            onClick={handleGenerateTailored}
+            onClick={() => handleGenerateTailored()}
             disabled={generating}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
           >
@@ -777,7 +792,22 @@ export function TailorStudio({
       {/* TAB 1: CV & Diff Studio (Human-in-the-loop) */}
       {activeTab === "cv" && (
         <div className="space-y-6">
-          {!hasTailoredVersion ? (
+          {generating ? (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-12 text-center dark:border-blue-900/50 dark:bg-blue-950/20">
+              <Loader2 className="mx-auto h-9 w-9 text-blue-600 animate-spin mb-3" />
+              <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                AI-optimering pågår för {job?.title || "rollen"}...
+              </h3>
+              <p className="mt-1.5 text-xs text-neutral-600 dark:text-neutral-300 max-w-md mx-auto leading-relaxed">
+                Analyserar kravprofilen mot ditt Master-CV, lyfter fram relevanta STAR-erfarenheter,
+                beräknar ATS-matchning och genererar ett skräddarsytt personligt brev.
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-100 dark:bg-blue-900/50 px-3 py-1 text-[11px] font-medium text-blue-800 dark:text-blue-200">
+                <Sparkles className="h-3.5 w-3.5 animate-pulse text-blue-600" />
+                <span>Modell: Gemini • Bibehåller 100% sanningshalt</span>
+              </div>
+            </div>
+          ) : !hasTailoredVersion ? (
             <div className="rounded-2xl border border-dashed border-neutral-300 p-12 text-center dark:border-neutral-700">
               <Sparkles className="mx-auto h-8 w-8 text-blue-500 mb-2" />
               <h3 className="text-base font-semibold text-neutral-900 dark:text-white">
@@ -788,7 +818,7 @@ export function TailorStudio({
                 annonsens nyckelord och anpassa ditt Master-CV med bibehållen sanning.
               </p>
               <button
-                onClick={handleGenerateTailored}
+                onClick={() => handleGenerateTailored()}
                 disabled={generating}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
               >

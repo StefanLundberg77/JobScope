@@ -124,7 +124,7 @@ const NOTE_SNIPPET_PRESETS = [
  * Props for the JobSearchView component.
  */
 interface JobSearchViewProps {
-  onOpenTailorStudio: (jobId: string) => void;
+  onOpenTailorStudio: (jobId: string, autoOptimize?: boolean) => void;
   onRefreshSavedCount: () => void;
 }
 
@@ -169,6 +169,7 @@ export function JobSearchView({
   const [savedMatchScores, setSavedMatchScores] = useState<Record<string, number>>({}); // externalId -> matchScore
   const [savingId, setSavingId] = useState<string | null>(null);
   const [matchingId, setMatchingId] = useState<string | null>(null);
+  const [optimizingId, setOptimizingId] = useState<string | null>(null);
 
   // Excluded keywords state
   const [excludeWords, setExcludeWords] = useState<string[]>(["Senior", "Erfaren"]);
@@ -604,25 +605,25 @@ export function JobSearchView({
     }
   };
 
-  // 3. Optimera: Saves job without previous ATS analysis and opens TailorStudio directly
+  // 3. Optimera: Saves job and opens TailorStudio with auto-optimization triggered
   const handleOptimizeJob = async (hit: UnifiedJobHit) => {
-    setSavingId(hit.id);
+    setOptimizingId(hit.id);
     try {
       const existingId = savedJobIds[hit.id];
       if (existingId) {
-        onOpenTailorStudio(existingId);
+        onOpenTailorStudio(existingId, true);
         return;
       }
 
       // Save without running match analysis (TailorStudio will handle full optimization)
       const saved = await saveJobRecord(hit, false);
       if (saved) {
-        onOpenTailorStudio(saved.id);
+        onOpenTailorStudio(saved.id, true);
       }
     } catch (err) {
       console.error("Failed to optimize job:", err);
     } finally {
-      setSavingId(null);
+      setOptimizingId(null);
     }
   };
 
@@ -1229,6 +1230,7 @@ export function JobSearchView({
             const isSaved = Boolean(savedJobIds[hit.id]);
             const isSaving = savingId === hit.id;
             const isMatching = matchingId === hit.id;
+            const isOptimizing = optimizingId === hit.id;
             const score = savedMatchScores[hit.id];
             const hasScore = score !== undefined && score !== null;
             const isBlocked = blockedJobIds.has(hit.id) || Boolean(hit.isBlocked);
@@ -1422,12 +1424,21 @@ export function JobSearchView({
                         {/* 3. Optimera button */}
                         <button
                           onClick={() => handleOptimizeJob(hit)}
-                          disabled={isSaving || isMatching}
-                          title="Öppna optimeringsläget direkt för att skräddarsy CV och brev"
-                          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-blue-700 transition-colors"
+                          disabled={isSaving || isMatching || isOptimizing}
+                          title="Öppna CV-studion och kör AI-optimering direkt"
+                          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-blue-700 transition-colors disabled:opacity-60 cursor-pointer"
                         >
-                          <Sparkles className="h-3.5 w-3.5" />
-                          <span>Optimera</span>
+                          {isOptimizing ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span>Optimerar...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span>Optimera</span>
+                            </>
+                          )}
                         </button>
                       </>
                     )}

@@ -1,60 +1,75 @@
-# Implementation Plan: Förenklade filnamn vid export och rensningsfunktion för exports-mappen
+# Implementation Plan: Automatisk AI-optimering & Ny navigationsknapp "CV-studion"
 
-## 1. Mål & Användarval
-- **Förenklade filnamn vid export**:
-  - Ändra namngivningen av de genererade filerna inuti varje exportmapp så att de inte innehåller arbetsgivarens namn.
-  - Genererade filer inuti `exports/YYYY-MM-DD_[Företag]_[Roll]/`:
-    - `CV_[Kandidatnamn].pdf` (t.ex. `CV_Stefan_Lundberg.pdf`)
-    - `Personligt_Brev_[Kandidatnamn].pdf` (t.ex. `Personligt_Brev_Stefan_Lundberg.pdf`)
-    - `CV_[Kandidatnamn].txt`
-    - `Personligt_Brev_[Kandidatnamn].txt`
-    - `Epost_och_Ansökningsinfo.txt`
-    - `Originalannons.txt`
-  - Mappnamnet behåller datum, företag och roll för enkel och tydlig lokal sortering i Utforskaren.
-- **Rensningsfunktion för `exports/`**:
-  - Implementera en hanterare för exportmappen så att användaren kan överblicka hur många mappar och hur mycket diskutrymme som används.
-  - Möjlighet att öppna rotmappen `exports/` direkt i Windows Utforskaren.
-  - Möjlighet att rensa alla genererade exportmappar med en bekräftelsedialog, utan att påverka sparade ansökningar eller data i JobScope-databasen.
+## 1. Bakgrund & Syfte
+1. **Automatisk AI-optimering vid klick på "Optimera" i Jobbsök**:
+   - När användaren klickar på "Optimera" i Jobbsök sparas annonsen men hamnade tidigare i ett tomt läge i `TailorStudio` (som visade "Inget skräddarsytt CV genererat ännu").
+   - Användaren förväntar sig med rätta att AI-optimeringen ska kicka igång direkt när man trycker "Optimera".
+2. **Ny flik "CV-studion" i Navbar**:
+   - Användaren har markerat i bifogad skärmdump att det saknas en genväg mellan **"Ansökningar"** och **"Mitt Master-CV"**.
+   - Idag förloras kontexten när man lämnar studion för att titta på Master-CV eller Jobbsök, och användaren måste gå via Ansökningar och leta upp rätt annons igen.
+   - En ny flik **"CV-studion"** gör det möjligt att hoppa direkt tillbaka till det senast öppnade/optimerade CV:t med ett enda klick.
 
 ---
 
-## 2. Arkitektur & Komponenter
+## 2. Arkitektur & Komponentändringar
 
-### A. Justering av Export API (`src/app/api/jobs/[id]/export/route.ts`)
-- Ändra `cvPdfName`, `letterPdfName`, `cvTxtName` och `letterTxtName` till att enbart använda `safeCandidate`:
-  - `CV_${safeCandidate}.pdf`
-  - `Personligt_Brev_${safeCandidate}.pdf`
-  - `CV_${safeCandidate}.txt`
-  - `Personligt_Brev_${safeCandidate}.txt`
-- Mappnamnet `folderName` behålls oförändrat (`${today}_${safeCompany}_${safeTitle}`).
+### A. Uppdatering av Navbar (`src/components/Navbar.tsx`)
+- Uppdatera typen `TabType`:
+  ```typescript
+  export type TabType = "search" | "import" | "tracker" | "studio" | "profile" | "settings";
+  ```
+- Lägg till ett nytt menyval mellan `tracker` ("Ansökningar") och `profile` ("Mitt Master-CV"):
+  ```typescript
+  {
+    id: "studio" as TabType,
+    label: "CV-studion",
+    icon: Sparkles,
+    badge: hasActiveJob ? "Aktiv" : null, // eller en liten indikator
+  }
+  ```
+- Ta emot en ny prop `hasActiveJob?: boolean` eller `activeJobTitle?: string` för att ge tydlig indikation.
 
-### B. Nytt API för exporthantering (`src/app/api/exports/route.ts`)
-- **`GET /api/exports`**:
-  - Läser av `exports/`-katalogen.
-  - Räknar antal mappar, antal filer och sammanlagd storlek i bytes/KB/MB.
-  - Returnerar statusen till frontend.
-- **`DELETE /api/exports`**:
-  - Raderar alla mappar och filer inuti `exports/` på ett säkert sätt.
-  - Återskapar en tom `exports/`-mapp vid behov.
-- **`POST /api/exports`**:
-  - Öppnar rotmappen `exports/` i Windows Utforskaren via `openFolderInExplorer`.
+### B. Hantering av aktivt jobb och flikväxling (`src/app/page.tsx`)
+- Lägg till tillstånd för senast aktiva jobb:
+  ```typescript
+  const [lastActiveJobId, setLastActiveJobId] = useState<string | null>(null);
+  const [autoOptimize, setAutoOptimize] = useState<boolean>(false);
+  ```
+- Vid start (i `useEffect`): Läs in `lastActiveJobId` från `localStorage` (om det finns) eller hämta senaste uppdaterade jobb från `/api/jobs`.
+- När användaren klickar på "CV-studion" i Navbar:
+  - Om `selectedJobId` redan är satt: växla vy till studio.
+  - Om `selectedJobId` är `null`: använd `lastActiveJobId` (eller det senast sparade/optimerade jobbet).
+  - Om det inte finns några sparade jobb alls: visa ett vänligt tomt tillstånd i studion ("Välj ett jobb i Jobbsök eller Ansökningar för att börja skräddarsy").
+- När användaren öppnar ett jobb (via `handleOpenTailorStudio(jobId, shouldAutoOptimize)`):
+  - `setSelectedJobId(jobId)`
+  - `setLastActiveJobId(jobId)`
+  - Spara i `localStorage.setItem("jobscope_last_job_id", jobId)`
+  - `setCurrentTab("studio")` (så att "CV-studion" markeras som aktiv i Navbaren istället för att "Jobbsök" felaktigt är markerad)
+  - `setAutoOptimize(shouldAutoOptimize)`
 
-### C. UI i Inställningar (`src/components/SettingsView.tsx`)
-- Lägg till ett nytt sektionskort: **Lagring & Exporterade ansökningar**.
-- Visar aktuellt antal exportmappar och förbrukad diskstorlek.
-- Knappar:
-  - **"Öppna mappen exports"** (öppnar mappen i Utforskaren).
-  - **"Rensa alla exporter"** (visar bekräftelseläge för att förhindra oavsiktlig radering).
-- Tydlig förklarande text om att sparad data i JobScope inte påverkas.
+### C. Automatisk optimeringstrigger (`src/components/TailorStudio.tsx`)
+- Ta emot prop `autoOptimize?: boolean`.
+- När komponenten har laddat jobbet:
+  - Om `autoOptimize === true` och jobbet ännu inte har någon skräddarsydd ansökan (`!j.applications || j.applications.length === 0`):
+  - Kör automatiskt `handleGenerateTailored()`.
+  - Visa snurrande laddare `"Optimerar med AI..."` och tydlig laddningsstatus.
+  - När AI:n är klar uppdateras gränssnittet direkt med genererat innehåll och statusen sätts till `"Optimerad"`.
+
+### D. Snabb och tydlig UX i Jobbsök (`src/components/JobSearchView.tsx`)
+- Lägg till `optimizingId`-state så att "Optimera"-knappen visar snurrande laddare (`<Loader2 className="animate-spin" />`) och texten `"Optimerar..."`.
+- Anropa `onOpenTailorStudio(saved.id, true)`.
 
 ---
 
 ## 3. Verifiering & Testning
-1. **API-verifiering**:
-   - Verifiera att `GET /api/exports` returnerar korrekt statistik.
-   - Verifiera att `POST /api/jobs/[id]/export` genererar `CV_Stefan_Lundberg.pdf` och `Personligt_Brev_Stefan_Lundberg.pdf` utan arbetsgivarnamn.
-   - Verifiera att `DELETE /api/exports` tömmer mappen och nollställer statistiken.
-2. **UI-test**:
-   - Kontrollera att `SettingsView` visar rätt data, att bekräftelse fungerar och att mappen rensas.
+1. **Test av "CV-studion"-fliken**:
+   - Öppna Syntronic-annonsen i studion.
+   - Klicka på "Mitt Master-CV" i Navbaren -> Vyn växlar till profilen.
+   - Klicka på "CV-studion" i Navbaren -> Vyn växlar omedelbart tillbaka till Syntronic i TailorStudio!
+   - Klicka på "Jobbsök" -> Vyn växlar till sökningen.
+   - Klicka på "CV-studion" -> Vyn växlar tillbaka till Syntronic.
+2. **Test av automatisk optimering**:
+   - Klicka "Optimera" på en ny annons i Jobbsök.
+   - Knappen visar "Optimerar...", öppnar CV-studion och AI:n kör igång genereringen direkt.
 3. **Byggkontroll**:
-   - Kör `npm run build` för att säkerställa inga TypeScript- eller lint-fel.
+   - Kör `npm run build` för att säkerställa 0 fel i TypeScript och Next.js.

@@ -13,7 +13,13 @@ import {
 /**
  * Top-level application view tab identifiers.
  */
-export type TabType = "search" | "import" | "tracker" | "profile" | "settings";
+export type TabType =
+  | "search"
+  | "import"
+  | "tracker"
+  | "studio"
+  | "profile"
+  | "settings";
 
 /**
  * Props for the Navbar component.
@@ -22,13 +28,19 @@ interface NavbarProps {
   currentTab: TabType;
   onSelectTab: (tab: TabType) => void;
   savedCount: number;
+  hasActiveStudioJob?: boolean;
 }
 
 /**
  * Top navigation bar featuring brand identity, responsive view switching tabs,
  * and live badge count of saved applications.
  */
-export function Navbar({ currentTab, onSelectTab, savedCount }: NavbarProps) {
+export function Navbar({
+  currentTab,
+  onSelectTab,
+  savedCount,
+  hasActiveStudioJob,
+}: NavbarProps) {
   const navItems = [
     {
       id: "search" as TabType,
@@ -47,6 +59,12 @@ export function Navbar({ currentTab, onSelectTab, savedCount }: NavbarProps) {
       label: "Ansökningar",
       icon: Briefcase,
       badge: savedCount > 0 ? savedCount : null,
+    },
+    {
+      id: "studio" as TabType,
+      label: "CV-studion",
+      icon: Sparkles,
+      badge: hasActiveStudioJob ? "Aktiv" : null,
     },
     {
       id: "profile" as TabType,
