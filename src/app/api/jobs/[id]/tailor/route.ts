@@ -99,10 +99,12 @@ export async function POST(
     });
 
     // Update job listing status and match score
+    const willBecomeTailored = job.status === "saved";
     await prisma.jobListing.update({
       where: { id: job.id },
       data: {
-        status: job.status === "saved" ? "tailored" : job.status,
+        status: willBecomeTailored ? "tailored" : job.status,
+        ...(willBecomeTailored ? { statusUpdatedAt: new Date() } : {}),
         matchScore: tailored.matchAnalysis.score,
         matchAnalysis: JSON.stringify(tailored.matchAnalysis),
       },

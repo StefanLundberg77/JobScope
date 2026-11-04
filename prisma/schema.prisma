@@ -44,6 +44,7 @@ model JobListing {
   requiredSkills  String                @default("[]")
   preferredSkills String                @default("[]")
   status          String                @default("saved")
+  statusUpdatedAt DateTime?
   matchScore      Int?
   matchAnalysis   String?
   dismissReason   String?
@@ -92,4 +93,3 @@ model BlockedJob {
   reason     String?
   createdAt  DateTime @default(now())
 }
-

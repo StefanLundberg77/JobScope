@@ -66,12 +66,25 @@ export async function PATCH(
   try {
     const { id } = await ctx.params;
     const body = await req.json();
-    const { status, notes, dismissReason } = body;
+    const { status, notes, dismissReason, statusUpdatedAt } = body;
+
+    const existing = status
+      ? await prisma.jobListing.findUnique({
+          where: { id },
+          select: { status: true },
+        })
+      : null;
+    const isStatusChanged = status && existing && status !== existing.status;
 
     const updated = await prisma.jobListing.update({
       where: { id },
       data: {
         ...(status && { status }),
+        ...(statusUpdatedAt
+          ? { statusUpdatedAt: new Date(statusUpdatedAt) }
+          : isStatusChanged
+          ? { statusUpdatedAt: new Date() }
+          : {}),
         ...(dismissReason !== undefined && { dismissReason }),
         ...(notes !== undefined && { notes }),
       },

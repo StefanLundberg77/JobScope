@@ -151,6 +151,7 @@ export interface JobItem {
   requiredSkills: string[];
   preferredSkills: string[];
   status: ApplicationStatus;
+  statusUpdatedAt?: string | null;
   matchScore?: number | null;
   matchAnalysis?: MatchAnalysis | null;
   dismissReason?: string | null;
@@ -168,6 +169,7 @@ export interface JobItem {
     emailBody?: string;
     diffNotes?: { section: string; change: string; rationale: string }[];
     notes?: string | null;
+    createdAt?: string;
     updatedAt: string;
   }[];
 }

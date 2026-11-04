@@ -15,6 +15,8 @@ import {
   StickyNote,
   Check,
   Gauge,
+  ArrowUpDown,
+  Calendar,
 } from "lucide-react";
 import { JobItem, ApplicationStatus } from "@/lib/types";
 
@@ -38,6 +40,108 @@ function formatSavedDate(dateStr?: string | null): string {
   } catch {
     return "";
   }
+}
+
+/**
+ * Returns a user-friendly Swedish action label for a given column status stage.
+ */
+export function getStatusLabel(status: ApplicationStatus): string {
+  switch (status) {
+    case "saved":
+      return "Sparad";
+    case "tailored":
+      return "Optimerad";
+    case "applied":
+      return "Skickad";
+    case "interview":
+      return "Intervju";
+    case "offer":
+      return "Erbjudande";
+    case "rejected":
+      return "Avslag";
+    case "dismissed":
+      return "Inaktuell";
+    default:
+      return "Uppdaterad";
+  }
+}
+
+/**
+ * Returns the most relevant timestamp for a job item within a specific Kanban column.
+ */
+export function getColumnStatusDate(
+  job: JobItem,
+  colStatus: ApplicationStatus
+): string {
+  if (job.statusUpdatedAt && job.status === colStatus) {
+    return job.statusUpdatedAt;
+  }
+  if (colStatus === "saved") {
+    return job.createdAt || "";
+  }
+  if (colStatus === "tailored") {
+    return (
+      job.applications?.[0]?.updatedAt ||
+      job.applications?.[0]?.createdAt ||
+      job.statusUpdatedAt ||
+      job.updatedAt ||
+      job.createdAt ||
+      ""
+    );
+  }
+  return job.statusUpdatedAt || job.updatedAt || job.createdAt || "";
+}
+
+/**
+ * Supported sorting options for the Kanban pipeline.
+ */
+export type KanbanSortOption =
+  | "stage_date_desc"
+  | "stage_date_asc"
+  | "match_score_desc"
+  | "deadline_asc"
+  | "company_asc";
+
+/**
+ * Sorts jobs within a specific Kanban column based on the active sort option.
+ */
+function sortColumnJobs(
+  jobsList: JobItem[],
+  colStatus: ApplicationStatus,
+  sortOption: KanbanSortOption
+): JobItem[] {
+  return [...jobsList].sort((a, b) => {
+    switch (sortOption) {
+      case "stage_date_desc": {
+        const timeA = new Date(getColumnStatusDate(a, colStatus)).getTime() || 0;
+        const timeB = new Date(getColumnStatusDate(b, colStatus)).getTime() || 0;
+        return timeB - timeA;
+      }
+      case "stage_date_asc": {
+        const timeA = new Date(getColumnStatusDate(a, colStatus)).getTime() || 0;
+        const timeB = new Date(getColumnStatusDate(b, colStatus)).getTime() || 0;
+        return timeA - timeB;
+      }
+      case "match_score_desc": {
+        const scoreA = a.matchScore ?? -1;
+        const scoreB = b.matchScore ?? -1;
+        return scoreB - scoreA;
+      }
+      case "deadline_asc": {
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      }
+      case "company_asc": {
+        return (a.company || "").localeCompare(b.company || "", "sv", {
+          sensitivity: "base",
+        });
+      }
+      default:
+        return 0;
+    }
+  });
 }
 
 /**
@@ -85,7 +189,7 @@ const NOTE_SNIPPETS = [
 /**
  * Visual Kanban application tracking board. Allows moving jobs between stages,
  * reviewing current ATS match scores, launching tailoring, tagging dismissal reasons,
- * and deleting listings.
+ * sorting column cards by stage date, and deleting listings.
  */
 export function TrackerView({
   onOpenTailorStudio,
@@ -93,6 +197,7 @@ export function TrackerView({
 }: TrackerViewProps) {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<KanbanSortOption>("stage_date_desc");
 
   // Modal state for selecting/entering a dismissal reason
   const [dismissModalJobId, setDismissModalJobId] = useState<string | null>(null);
@@ -104,6 +209,33 @@ export function TrackerView({
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [matchingJobId, setMatchingJobId] = useState<string | null>(null);
+
+  // Restore sort choice from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("jobscope_kanban_sort") as KanbanSortOption;
+      if (
+        stored === "stage_date_desc" ||
+        stored === "stage_date_asc" ||
+        stored === "match_score_desc" ||
+        stored === "deadline_asc" ||
+        stored === "company_asc"
+      ) {
+        setSortBy(stored);
+      }
+    } catch {
+      // Ignore localStorage read errors
+    }
+  }, []);
+
+  const handleSortChange = (newSort: KanbanSortOption) => {
+    setSortBy(newSort);
+    try {
+      localStorage.setItem("jobscope_kanban_sort", newSort);
+    } catch {
+      // Ignore localStorage write errors
+    }
+  };
 
   const handleOpenNoteModal = (job: JobItem) => {
     setNoteModalJob(job);
@@ -186,9 +318,15 @@ export function TrackerView({
     newStatus: ApplicationStatus,
     reason?: string | null
   ) => {
+    const nowIso = new Date().toISOString();
     try {
-      const payload: { status: ApplicationStatus; dismissReason?: string | null } = {
+      const payload: {
+        status: ApplicationStatus;
+        dismissReason?: string | null;
+        statusUpdatedAt: string;
+      } = {
         status: newStatus,
+        statusUpdatedAt: nowIso,
       };
       if (reason !== undefined) {
         payload.dismissReason = reason;
@@ -207,6 +345,7 @@ export function TrackerView({
               ? {
                   ...j,
                   status: newStatus,
+                  statusUpdatedAt: nowIso,
                   ...(reason !== undefined && { dismissReason: reason }),
                 }
               : j
@@ -265,7 +404,7 @@ export function TrackerView({
 
   return (
     <div className="space-y-6 pb-16">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-200 pb-5 dark:border-neutral-800">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-200 pb-5 dark:border-neutral-800">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
             Ansökningsspårare (Kanban)
@@ -275,20 +414,50 @@ export function TrackerView({
             vilka annonser du valt bort som inaktuella.
           </p>
         </div>
-        <div className="flex items-center gap-3 text-xs font-semibold text-neutral-500">
-          <span className="rounded-md bg-blue-50 px-2 py-1 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-            {activeJobsCount} aktiva
-          </span>
-          <span className="rounded-md bg-neutral-100 px-2 py-1 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
-            {dismissedJobsCount} inaktuella
-          </span>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Sorting control */}
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="kanban-sort-select"
+              className="text-xs font-medium text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
+              <span>Sortera:</span>
+            </label>
+            <select
+              id="kanban-sort-select"
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value as KanbanSortOption)}
+              className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 cursor-pointer"
+            >
+              <option value="stage_date_desc">Nyast först (kolumndatum)</option>
+              <option value="stage_date_asc">Äldst först (kolumndatum)</option>
+              <option value="match_score_desc">Högst matchning</option>
+              <option value="deadline_asc">Närmaste deadline</option>
+              <option value="company_asc">Företag (A–Ö)</option>
+            </select>
+          </div>
+
+          <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-700 hidden sm:block" />
+
+          {/* Badge counters */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-neutral-500">
+            <span className="rounded-md bg-blue-50 px-2 py-1 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+              {activeJobsCount} aktiva
+            </span>
+            <span className="rounded-md bg-neutral-100 px-2 py-1 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+              {dismissedJobsCount} inaktuella
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Kanban Board Grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 items-start">
         {COLUMNS.map((col) => {
-          const colJobs = jobs.filter((j) => j.status === col.id);
+          const rawColJobs = jobs.filter((j) => j.status === col.id);
+          const colJobs = sortColumnJobs(rawColJobs, col.id, sortBy);
           const isDismissedCol = col.id === "dismissed";
 
           return (
@@ -308,139 +477,114 @@ export function TrackerView({
 
               {/* Cards in column */}
               <div className="space-y-2.5 flex-1">
-                {colJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className={`rounded-xl border bg-white p-3 shadow-xs transition-all hover:shadow-md dark:bg-neutral-800 ${
-                      isDismissedCol
-                        ? "border-slate-300 opacity-85 hover:opacity-100 dark:border-slate-800 dark:bg-neutral-800/60"
-                        : "border-neutral-200 dark:border-neutral-700"
-                    }`}
-                  >
-                    {/* Company name & delete action */}
-                    <div className="flex items-start justify-between gap-1.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <Building className="h-3.5 w-3.5 shrink-0 text-neutral-500 dark:text-neutral-400" />
-                          <h4
-                            className="text-sm font-bold text-neutral-900 dark:text-white truncate"
-                            title={job.company}
-                          >
-                            {job.company}
-                          </h4>
-                        </div>
-                        {/* Target job title being applied for */}
-                        <p
-                          className="mt-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-300 line-clamp-1"
-                          title={job.title}
-                        >
-                          {job.title}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteJob(job.id)}
-                        className="text-neutral-400 hover:text-red-500 shrink-0 p-0.5 transition-colors"
-                        title="Radera"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                {colJobs.map((job) => {
+                  const stageDate = getColumnStatusDate(job, col.id);
+                  const stageLabel = getStatusLabel(col.id);
 
-                    {/* Location */}
-                    <div className="mt-1.5 flex items-center gap-1 text-[11px] text-neutral-500 dark:text-neutral-400">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{job.location}</span>
-                    </div>
-
-                    {/* Saved timestamp */}
-                    {job.createdAt && (
-                      <div className="mt-0.5 flex items-center gap-1 text-[10px] text-neutral-400 dark:text-neutral-500">
-                        <Clock className="h-3 w-3 shrink-0" />
-                        <span className="truncate">Sparad {formatSavedDate(job.createdAt)}</span>
-                      </div>
-                    )}
-
-                    {/* Match Score Badge */}
-                    {job.matchScore !== null && job.matchScore !== undefined && (
-                      <div
-                        className={`mt-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                          job.matchScore >= 75
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                            : job.matchScore >= 50
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
-                            : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
-                        }`}
-                      >
-                        <Sparkles className="h-2.5 w-2.5 shrink-0" />
-                        {job.matchScore}% match
-                      </div>
-                    )}
-
-                    {/* Dismissal Reason Tag */}
-                    {isDismissedCol && job.dismissReason && (
-                      <div className="mt-2 flex items-start gap-1 rounded-md bg-slate-100 p-1.5 text-[10px] leading-tight text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        <Tag className="h-3 w-3 mt-0.5 shrink-0 text-slate-500" />
-                        <span className="italic line-clamp-2">{job.dismissReason}</span>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="mt-3 pt-2 border-t border-neutral-100 dark:border-neutral-700/60 flex flex-col gap-1.5">
-                      {isDismissedCol ? (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleUpdateStatus(job.id, "saved")}
-                            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50/70 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 transition-colors"
-                            title="Flytta tillbaka till sparade och häv sökblockering"
-                          >
-                            <RotateCcw className="h-3 w-3" />
-                            <span>Återaktivera</span>
-                          </button>
-                          <button
-                            onClick={() => handleOpenNoteModal(job)}
-                            title={(job.notes || job.applications?.[0]?.notes) ? "Visa eller redigera anteckning" : "Anteckningar"}
-                            className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md border transition-colors ${
-                              (job.notes || job.applications?.[0]?.notes)
-                                ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                                : "border-neutral-200 bg-neutral-50/70 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
-                            }`}
-                          >
-                            <StickyNote className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          {job.matchScore === null || job.matchScore === undefined ? (
-                            <button
-                              onClick={() => handleRunMatch(job.id)}
-                              disabled={matchingJobId === job.id}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 transition-colors"
-                              title="Kör ATS-matchningsanalys med Gemini"
+                  return (
+                    <div
+                      key={job.id}
+                      className={`rounded-xl border bg-white p-3 shadow-xs transition-all hover:shadow-md dark:bg-neutral-800 ${
+                        isDismissedCol
+                          ? "border-slate-300 opacity-85 hover:opacity-100 dark:border-slate-800 dark:bg-neutral-800/60"
+                          : "border-neutral-200 dark:border-neutral-700"
+                      }`}
+                    >
+                      {/* Company name & delete action */}
+                      <div className="flex items-start justify-between gap-1.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <Building className="h-3.5 w-3.5 shrink-0 text-neutral-500 dark:text-neutral-400" />
+                            <h4
+                              className="text-sm font-bold text-neutral-900 dark:text-white truncate"
+                              title={job.company}
                             >
-                              {matchingJobId === job.id ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
-                                  <span>Matchar...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Gauge className="h-3 w-3 text-neutral-500" />
-                                  <span>Kör Matchning</span>
-                                </>
-                              )}
-                            </button>
-                          ) : null}
+                              {job.company}
+                            </h4>
+                          </div>
+                          {/* Target job title being applied for */}
+                          <p
+                            className="mt-0.5 text-xs font-medium text-neutral-600 dark:text-neutral-300 line-clamp-1"
+                            title={job.title}
+                          >
+                            {job.title}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteJob(job.id)}
+                          className="text-neutral-400 hover:text-red-500 shrink-0 p-0.5 transition-colors"
+                          title="Radera"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
 
+                      {/* Location */}
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] text-neutral-500 dark:text-neutral-400">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{job.location}</span>
+                      </div>
+
+                      {/* Stage status timestamp */}
+                      {stageDate && (
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-neutral-400 dark:text-neutral-500">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          <span className="truncate">
+                            {stageLabel} {formatSavedDate(stageDate)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Application deadline if present */}
+                      {job.deadline && (
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          <span className="truncate">
+                            Sista dag:{" "}
+                            {new Date(job.deadline).toLocaleDateString("sv-SE", {
+                              day: "numeric",
+                              month: "short",
+                            })}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Match Score Badge */}
+                      {job.matchScore !== null && job.matchScore !== undefined && (
+                        <div
+                          className={`mt-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                            job.matchScore >= 75
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              : job.matchScore >= 50
+                              ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+                              : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                          }`}
+                        >
+                          <Sparkles className="h-2.5 w-2.5 shrink-0" />
+                          {job.matchScore}% match
+                        </div>
+                      )}
+
+                      {/* Dismissal Reason Tag */}
+                      {isDismissedCol && job.dismissReason && (
+                        <div className="mt-2 flex items-start gap-1 rounded-md bg-slate-100 p-1.5 text-[10px] leading-tight text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                          <Tag className="h-3 w-3 mt-0.5 shrink-0 text-slate-500" />
+                          <span className="italic line-clamp-2">{job.dismissReason}</span>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="mt-3 pt-2 border-t border-neutral-100 dark:border-neutral-700/60 flex flex-col gap-1.5">
+                        {isDismissedCol ? (
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => onOpenTailorStudio(job.id)}
-                              className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 transition-colors"
-                              title="Öppna CV i Skräddarsy-studion"
+                              onClick={() => handleUpdateStatus(job.id, "saved")}
+                              className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50/70 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 transition-colors"
+                              title="Flytta tillbaka till sparade och häv sökblockering"
                             >
-                              <FileText className="h-3 w-3 text-neutral-500 dark:text-neutral-400" />
-                              <span>Öppna CV</span>
+                              <RotateCcw className="h-3 w-3" />
+                              <span>Återaktivera</span>
                             </button>
-
                             <button
                               onClick={() => handleOpenNoteModal(job)}
                               title={(job.notes || job.applications?.[0]?.notes) ? "Visa eller redigera anteckning" : "Anteckningar"}
@@ -453,31 +597,77 @@ export function TrackerView({
                               <StickyNote className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            {job.matchScore === null || job.matchScore === undefined ? (
+                              <button
+                                onClick={() => handleRunMatch(job.id)}
+                                disabled={matchingJobId === job.id}
+                                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 transition-colors"
+                                title="Kör ATS-matchningsanalys med Gemini"
+                              >
+                                {matchingJobId === job.id ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                                    <span>Matchar...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Gauge className="h-3 w-3 text-neutral-500" />
+                                    <span>Kör Matchning</span>
+                                  </>
+                                )}
+                              </button>
+                            ) : null}
 
-                      {/* Move to stage select */}
-                      <select
-                        value={job.status}
-                        onChange={(e) =>
-                          handleStatusSelectChange(
-                            job.id,
-                            e.target.value as ApplicationStatus
-                          )
-                        }
-                        className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-medium text-neutral-700 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 cursor-pointer"
-                      >
-                        <option value="saved">Sparad</option>
-                        <option value="tailored">Optimerad</option>
-                        <option value="applied">Ansökt</option>
-                        <option value="interview">Intervju</option>
-                        <option value="offer">Erbjudande</option>
-                        <option value="rejected">Avslag</option>
-                        <option value="dismissed">Inaktuell</option>
-                      </select>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => onOpenTailorStudio(job.id)}
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50/70 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-750 transition-colors"
+                                title="Öppna CV i Skräddarsy-studion"
+                              >
+                                <FileText className="h-3 w-3 text-neutral-500 dark:text-neutral-400" />
+                                <span>Öppna CV</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenNoteModal(job)}
+                                title={(job.notes || job.applications?.[0]?.notes) ? "Visa eller redigera anteckning" : "Anteckningar"}
+                                className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md border transition-colors ${
+                                  (job.notes || job.applications?.[0]?.notes)
+                                    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                    : "border-neutral-200 bg-neutral-50/70 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
+                                }`}
+                              >
+                                <StickyNote className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Move to stage select */}
+                        <select
+                          value={job.status}
+                          onChange={(e) =>
+                            handleStatusSelectChange(
+                              job.id,
+                              e.target.value as ApplicationStatus
+                            )
+                          }
+                          className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-medium text-neutral-700 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 cursor-pointer"
+                        >
+                          <option value="saved">Sparad</option>
+                          <option value="tailored">Optimerad</option>
+                          <option value="applied">Ansökt</option>
+                          <option value="interview">Intervju</option>
+                          <option value="offer">Erbjudande</option>
+                          <option value="rejected">Avslag</option>
+                          <option value="dismissed">Inaktuell</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {colJobs.length === 0 && (
                   <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-neutral-300/60 text-[11px] text-neutral-400 dark:border-neutral-800">

@@ -220,6 +220,7 @@ export async function POST(req: Request) {
           where: { id: job.id },
           data: {
             ...(status && { status }),
+            ...(status && status !== job.status ? { statusUpdatedAt: new Date() } : {}),
             ...(dismissReason !== undefined && { dismissReason }),
             ...(notes !== undefined && { notes }),
           },
@@ -243,6 +244,7 @@ export async function POST(req: Request) {
           requiredSkills: JSON.stringify(jobData.requiredSkills),
           preferredSkills: JSON.stringify(jobData.preferredSkills),
           status: status || "saved",
+          statusUpdatedAt: new Date(),
           dismissReason: dismissReason || null,
           notes: notes !== undefined ? notes : null,
         },
