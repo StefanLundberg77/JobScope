@@ -27,11 +27,12 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { UnifiedJobHit, JobItem } from "@/lib/types";
+import { DEFAULT_CONFIGURABLE_EXCLUDES } from "@/lib/jobRelevance";
 
 /**
  * Key used to preserve user filter selections and search hits in sessionStorage.
  */
-const SEARCH_SESSION_KEY = "jobscope_search_session_state";
+const SEARCH_SESSION_KEY = "jobscope_search_session_state_v2";
 
 interface SearchSessionCache {
   query: string;
@@ -47,22 +48,22 @@ interface SearchSessionCache {
 }
 
 /**
- * Predefined keywords commonly excluded to filter out senior, lead, IT support, embedded, or ERP positions.
+ * Configurable seniority and tech-stack exclusion presets.
+ * Non-developer domain noise (postdoc, thesis/LIA, non-IT "-utvecklare", support, CAE/hardware)
+ * is filtered automatically on the backend when broad developer mode is active.
  */
 const EXCLUDE_PRESETS = [
   "Senior",
   "Erfaren",
   "Lead",
   "Arkitekt",
-  "IT-tekniker",
-  "Support",
-  "Product Owner",
-  "Produktägare",
-  "Testledare",
   "Embedded",
   "C++",
   "SAP",
   "Dynamics",
+  "Java",
+  "PHP",
+  "Mobile",
 ];
 
 /**
@@ -171,8 +172,8 @@ export function JobSearchView({
   const [matchingId, setMatchingId] = useState<string | null>(null);
   const [optimizingId, setOptimizingId] = useState<string | null>(null);
 
-  // Excluded keywords state
-  const [excludeWords, setExcludeWords] = useState<string[]>(["Senior", "Erfaren"]);
+  // Excluded keywords state (layer 2: user-configurable seniority & tech-stack filters)
+  const [excludeWords, setExcludeWords] = useState<string[]>([...DEFAULT_CONFIGURABLE_EXCLUDES]);
   const [customExcludeInput, setCustomExcludeInput] = useState("");
 
   // Blocked job listings state
@@ -213,9 +214,9 @@ export function JobSearchView({
     if (!broadIt) count++;
     if (remoteOnly) count++;
     if (!hideBlocked) count++;
-    const defaultExcludes = ["senior", "erfaren"];
+    const defaultExcludes = DEFAULT_CONFIGURABLE_EXCLUDES.map((w) => w.toLowerCase());
     const isDefaultExcludes =
-      excludeWords.length === 2 &&
+      excludeWords.length === defaultExcludes.length &&
       excludeWords.every((w) => defaultExcludes.includes(w.toLowerCase()));
     if (!isDefaultExcludes) count++;
     return count;
@@ -223,12 +224,13 @@ export function JobSearchView({
 
   // Reset all filters to default baseline
   const handleResetFilters = () => {
+    const defaultExcludes = [...DEFAULT_CONFIGURABLE_EXCLUDES];
     setLocation("goteborg");
     setSource("all");
     setBroadIt(true);
     setRemoteOnly(false);
     setHideBlocked(true);
-    setExcludeWords(["Senior", "Erfaren"]);
+    setExcludeWords(defaultExcludes);
     handleSearch(
       query,
       "all",
@@ -237,7 +239,7 @@ export function JobSearchView({
       true,
       "goteborg",
       false,
-      ["Senior", "Erfaren"]
+      defaultExcludes
     );
   };
 
@@ -271,10 +273,8 @@ export function JobSearchView({
         sort: so,
         includeBlocked: hb ? "false" : "true",
         limit: "25",
+        exclude: exc.join(","),
       });
-      if (exc.length > 0) {
-        params.set("exclude", exc.join(","));
-      }
 
       const res = await fetch(`/api/jobs/search?${params.toString()}`);
       if (res.ok) {
@@ -418,7 +418,7 @@ export function JobSearchView({
     } catch {
       // Ignore quota errors
     }
-  }, [isSessionRestored, query, broadIt, location, remoteOnly, source, sort, hideBlocked, hits, totalHits]);
+  }, [isSessionRestored, query, broadIt, location, remoteOnly, source, sort, hideBlocked, excludeWords, hits, totalHits]);
 
   // Open dismiss modal
   const handleOpenDismissModal = (hit: UnifiedJobHit) => {
@@ -718,7 +718,7 @@ export function JobSearchView({
       const res = await fetch("/api/jobs/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ minScore: 60 }),
+        body: JSON.stringify({ minScore: 60, exclude: excludeWords }),
       });
 
       const data = await res.json();
@@ -1129,6 +1129,10 @@ export function JobSearchView({
                     Rensa alla
                   </button>
                 )}
+
+                <p className="w-full pt-1 text-[11px] text-neutral-400 dark:text-neutral-500">
+                  Icke-utvecklarroller (postdoktor, exjobb/LIA, produkt-/metod-/verksamhetsutvecklare, IT-support och CAE/hårdvara) filtreras alltid bort automatiskt i &quot;Alla utvecklarjobb&quot;.
+                </p>
               </div>
             </div>
           </div>

@@ -9,9 +9,13 @@ import {
   searchJobTech,
   OCCUPATION_FIELD_DATA_IT,
   DEVELOPER_OCCUPATION_GROUPS,
-  isExcludedJobTitle,
   normalizeJobTechWorkplaceModel,
 } from "@/lib/jobtech";
+import {
+  DEFAULT_CONFIGURABLE_EXCLUDES,
+  LINKEDIN_DEVELOPER_BROAD_QUERY,
+  isRelevantDeveloperHit,
+} from "@/lib/jobRelevance";
 import { searchLinkedInJobs } from "@/lib/linkedin";
 import { UnifiedJobHit } from "@/lib/types";
 
@@ -25,9 +29,10 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
     const broadIt = searchParams.get("broadIt") !== "false";
-    // When broad developer search without specific query is active, target developer & QA occupation groups
+    // When broad developer search without specific query is active, target software developer group directly.
+    // Do not combine occupationField with occupationGroups, as JobTech ORs them together.
     const occupationGroups = !query && broadIt ? DEVELOPER_OCCUPATION_GROUPS : undefined;
-    const occupationField = broadIt ? OCCUPATION_FIELD_DATA_IT : undefined;
+    const occupationField = broadIt && !occupationGroups ? OCCUPATION_FIELD_DATA_IT : undefined;
     const location = (searchParams.get("location") || "goteborg") as
       | "goteborg"
       | "commute"
@@ -40,23 +45,22 @@ export async function GET(req: Request) {
     const jtSort = sort === "date" ? ("pubdate-desc" as const) : undefined;
     const limit = parseInt(searchParams.get("limit") || "25", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const hasExcludeParam = searchParams.has("exclude");
     const excludeParam = searchParams.get("exclude") || "";
-    const excludeWords = excludeParam
-      .split(",")
-      .map((w) => w.trim())
-      .filter(Boolean);
+    const excludeWords = hasExcludeParam
+      ? excludeParam
+          .split(",")
+          .map((w) => w.trim())
+          .filter(Boolean)
+      : DEFAULT_CONFIGURABLE_EXCLUDES;
 
-    // Format negative terms for upstream APIs
-    const negativeJtTerms = excludeWords.map((w) => `-${w}`).join(" ");
-    const jtQuery = query
-      ? `${query} ${negativeJtTerms}`.trim()
-      : negativeJtTerms;
-
-    const negativeLiTerms = excludeWords.map((w) => `NOT ${w}`).join(" ");
-    const liDeveloperBase = 'Utvecklare OR Developer OR "Software Engineer" OR AI OR "Data Engineer" OR .NET OR Python OR Fullstack';
-    const liQuery = query
-      ? `${query} ${negativeLiTerms}`.trim()
-      : `${liDeveloperBase} ${negativeLiTerms}`.trim();
+    // Avoid sending negative exclusion terms to upstream full-text search, as both JobTech and
+    // LinkedIn match against the full ad body (hiding junior/mid ads mentioning "seniora kollegor").
+    // Exclusions and positive developer relevance are enforced on title/occupation locally below.
+    const jtQuery = query.trim();
+    const liQuery = query.trim() || LINKEDIN_DEVELOPER_BROAD_QUERY;
+    const jtFetchLimit = Math.min(limit * 2, 50);
+    const liFetchLimit = Math.min(Math.max(limit, 30), 30);
 
     let hits: UnifiedJobHit[] = [];
     let totalCount = 0;
@@ -94,7 +98,7 @@ export async function GET(req: Request) {
           occupationGroups,
           location,
           remote: false,
-          limit,
+          limit: jtFetchLimit,
           offset,
           sort: jtSort,
         });
@@ -114,7 +118,7 @@ export async function GET(req: Request) {
           occupationGroups,
           location,
           remote: false,
-          limit,
+          limit: jtFetchLimit,
           offset,
           sort: jtSort,
         }),
@@ -124,7 +128,7 @@ export async function GET(req: Request) {
           occupationGroups,
           location: "all",
           remote: true,
-          limit,
+          limit: jtFetchLimit,
           offset: 0,
           sort: jtSort,
         }),
@@ -157,14 +161,14 @@ export async function GET(req: Request) {
 
     async function fetchLinkedInHits(): Promise<{ hits: UnifiedJobHit[]; total: number }> {
       if (!remote) {
-        const data = await searchLinkedInJobs({ query: liQuery || undefined, location, remote: false, limit, offset });
+        const data = await searchLinkedInJobs({ query: liQuery || undefined, location, remote: false, limit: liFetchLimit, offset });
         return { hits: data.hits || [], total: data.total?.value || (data.hits || []).length };
       }
 
       // Additive remote search: query local LinkedIn jobs AND nationwide remote jobs in parallel
       const [localRes, remoteRes] = await Promise.allSettled([
-        searchLinkedInJobs({ query: liQuery || undefined, location, remote: false, limit: Math.min(limit, 25), offset }),
-        searchLinkedInJobs({ query: liQuery || undefined, location: "all", remote: true, limit: Math.min(limit, 25), offset: 0 }),
+        searchLinkedInJobs({ query: liQuery || undefined, location, remote: false, limit: Math.min(liFetchLimit, 25), offset }),
+        searchLinkedInJobs({ query: liQuery || undefined, location: "all", remote: true, limit: Math.min(liFetchLimit, 25), offset: 0 }),
       ]);
 
       const localHits = localRes.status === "fulfilled" ? localRes.value.hits || [] : [];
@@ -190,13 +194,15 @@ export async function GET(req: Request) {
       totalCount = jt.total + li.total;
     }
 
-    // Filter out hits matching excluded patterns or user-supplied exclusion keywords
-    hits = hits.filter((h) => {
-      const headline = h.headline || "";
-      const occLabel = h.occupation?.label;
-      return !isExcludedJobTitle(headline, excludeWords, occLabel);
-    });
-    totalCount = Math.min(totalCount, hits.length);
+    // Enforce two-layer relevance filtering (non-dev noise + positive developer signal + configurable exclusions)
+    hits = hits.filter((h) =>
+      isRelevantDeveloperHit(h, {
+        broadIt,
+        query,
+        excludeWords,
+      })
+    );
+    totalCount = hits.length;
 
     // Query blocked jobs and saved listings from database
     const [blockedRecords, dismissedJobs, savedJobs] = await Promise.all([

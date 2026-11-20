@@ -6,6 +6,7 @@
 
 import { UnifiedJobHit } from "./types";
 import { ParsedJobAd } from "./parser";
+import { LINKEDIN_DEVELOPER_BROAD_QUERY } from "./jobRelevance";
 
 /**
  * Parameters for querying the public LinkedIn guest jobs search endpoint.
@@ -90,13 +91,17 @@ export function isLinkedInUrl(url: string): boolean {
 export async function searchLinkedInJobs(
   params: LinkedInSearchParams
 ): Promise<LinkedInSearchResponse> {
-  const rawQuery = params.query?.trim() || "IT OR Utvecklare OR Developer";
+  const rawQuery = params.query?.trim() || LINKEDIN_DEVELOPER_BROAD_QUERY;
   // The LinkedIn guest endpoint ignores f_WT, so append remote/distans keywords
-  // to ensure only actual remote positions are returned.
+  // to ensure only actual remote positions are returned without double-wrapping parens.
+  const wrappedQuery =
+    rawQuery.startsWith("(") && rawQuery.endsWith(")")
+      ? rawQuery
+      : params.query?.trim()
+      ? rawQuery
+      : `(${rawQuery})`;
   const query = params.remote
-    ? params.query?.trim()
-      ? `${rawQuery} (remote OR distans)`
-      : `(${rawQuery}) (remote OR distans)`
+    ? `${wrappedQuery} (remote OR distans)`
     : rawQuery;
   const location = mapLocationToLinkedIn(params.location);
   const start = params.offset ?? 0;

@@ -11,9 +11,13 @@ import {
   fetchJobTechAd,
   OCCUPATION_FIELD_DATA_IT,
   DEVELOPER_OCCUPATION_GROUPS,
-  isExcludedJobTitle,
   normalizeJobTechWorkplaceModel,
 } from "@/lib/jobtech";
+import {
+  DEFAULT_CONFIGURABLE_EXCLUDES,
+  LINKEDIN_DEVELOPER_BROAD_QUERY,
+  isRelevantDeveloperHit,
+} from "@/lib/jobRelevance";
 import { searchLinkedInJobs, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
 import { parseJobAdText } from "@/lib/parser";
@@ -68,30 +72,25 @@ export async function POST(req: Request) {
       ? body.exclude
       : typeof body.exclude === "string"
       ? body.exclude.split(",").map((s: string) => s.trim()).filter(Boolean)
-      : [];
-    const negativeJtTerms = excludeWords.map((w) => `-${w}`).join(" ");
-    const negativeLiTerms = excludeWords.map((w) => `NOT ${w}`).join(" ");
+      : DEFAULT_CONFIGURABLE_EXCLUDES;
 
-    const jtScanQuery = query
-      ? `${query} ${negativeJtTerms}`.trim()
-      : negativeJtTerms;
-    const liScanBase = 'Utvecklare OR Developer OR "Software Engineer" OR AI OR "Data Engineer" OR .NET OR Python OR Fullstack';
-    const liScanQuery = query
-      ? `${query} ${negativeLiTerms}`.trim()
-      : `${liScanBase} ${negativeLiTerms}`.trim();
+    // Avoid sending negative exclusion terms to upstream full-text search so valid junior/mid ads
+    // mentioning "seniora kollegor" are not dropped before local title/occupation relevance filtering.
+    const jtScanQuery = query.trim();
+    const liScanQuery = query.trim() || LINKEDIN_DEVELOPER_BROAD_QUERY;
 
     const [jobTechRes, jobTechDataRes, linkedInRes] = await Promise.allSettled([
       searchJobTech({
         query: jtScanQuery || undefined,
-        occupationField: broadIt ? OCCUPATION_FIELD_DATA_IT : undefined,
+        occupationField: broadIt && !isDefaultBroadSweep ? OCCUPATION_FIELD_DATA_IT : undefined,
         occupationGroups: isDefaultBroadSweep ? DEVELOPER_OCCUPATION_GROUPS : undefined,
         location,
         remote,
-        limit: 25,
+        limit: 40,
       }),
       isDefaultBroadSweep
         ? searchJobTech({
-            query: `"Data Engineer" Datamodellering ${negativeJtTerms}`.trim(),
+            query: '"Data Engineer" Datamodellering',
             occupationField: OCCUPATION_FIELD_DATA_IT,
             location,
             remote,
@@ -102,7 +101,7 @@ export async function POST(req: Request) {
         query: liScanQuery,
         location,
         remote,
-        limit: 20,
+        limit: 30,
       }),
     ]);
 
@@ -151,7 +150,7 @@ export async function POST(req: Request) {
     }> = [];
 
     for (const h of liHits) {
-      if (isExcludedJobTitle(h.headline, excludeWords, h.occupation?.label)) continue;
+      if (!isRelevantDeveloperHit({ ...h, source: "linkedin" }, { broadIt, query, excludeWords })) continue;
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
       if (
         !existingIds.has(h.id) &&
@@ -170,7 +169,7 @@ export async function POST(req: Request) {
     }
 
     for (const h of jtHits) {
-      if (isExcludedJobTitle(h.headline, excludeWords, h.occupation?.label)) continue;
+      if (!isRelevantDeveloperHit({ ...h, source: "jobtech" }, { broadIt, query, excludeWords })) continue;
       const key = `${h.headline.toLowerCase()}___${h.employer.name.toLowerCase()}`;
       if (
         !existingIds.has(h.id) &&

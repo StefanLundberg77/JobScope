@@ -78,6 +78,13 @@ export interface JobTechSearchResponse {
   hits: JobTechHit[];
 }
 
+import {
+  DEFAULT_EXCLUDED_ROLE_PATTERNS,
+  isExcludedJobTitle,
+} from "./jobRelevance";
+
+export { DEFAULT_EXCLUDED_ROLE_PATTERNS, isExcludedJobTitle };
+
 /** Arbetsförmedlingen Data/IT occupation field taxonomy ID */
 export const OCCUPATION_FIELD_DATA_IT = "apaJ_2ja_LuF";
 
@@ -87,75 +94,14 @@ export const OCCUPATION_GROUP_SOFTWARE_DEV = "DJh5_yyF_hEM";
 /** Arbetsförmedlingen System Testers and Test Leads occupation group taxonomy ID */
 export const OCCUPATION_GROUP_TEST_QA = "D9SL_mtn_vGM";
 
-/** Developer & QA occupation groups that strictly match software engineering qualifications */
+/**
+ * Primary developer occupation groups for broad "Alla utvecklarjobb" sweeps.
+ * Targets software & systems developers directly so smaller QA/test groups do not dominate
+ * relevance ranking via Elasticsearch IDF skew.
+ */
 export const DEVELOPER_OCCUPATION_GROUPS = [
   OCCUPATION_GROUP_SOFTWARE_DEV,
-  OCCUPATION_GROUP_TEST_QA,
 ];
-
-/** Default role keywords that should be excluded to avoid mismatched IT support, senior, embedded or ERP roles */
-export const DEFAULT_EXCLUDED_ROLE_PATTERNS = [
-  // Seniority & Leadership
-  "Senior",
-  "Erfaren",
-  "Lead",
-  "Principal",
-  "Arkitekt",
-  "Architect",
-  // IT Support / Technician / Hardware / Infrastructure
-  "IT-tekniker",
-  "IT tekniker",
-  "Supporttekniker",
-  "IT-support",
-  "IT support",
-  "Helpdesk",
-  "Servicedesk",
-  "Nätverkstekniker",
-  "Drifttekniker",
-  "Systemadministratör",
-  "Servicetekniker",
-  "Servicerådgivare",
-  // Non-coding management & test lead
-  "Product Owner",
-  "Produktägare",
-  "Produktledare",
-  "Testledare",
-  "Projektledare",
-  "Scrum Master",
-  // Unwanted technical stacks
-  "Embedded",
-  "C++",
-  "SAP",
-  "Dynamics",
-  "Business Central",
-  "Jeeves",
-  "ERP-konsult",
-];
-
-/**
- * Checks whether a job ad headline or occupation label matches any excluded patterns.
- */
-export function isExcludedJobTitle(
-  headline: string,
-  excludeWords: string[] = [],
-  occupationLabel?: string
-): boolean {
-  const combined = `${headline} ${occupationLabel || ""}`.toLowerCase();
-  const allExcludes = Array.from(new Set([...DEFAULT_EXCLUDED_ROLE_PATTERNS, ...excludeWords]));
-
-  for (const term of allExcludes) {
-    const cleanTerm = term.trim().toLowerCase();
-    if (!cleanTerm) continue;
-
-    // Word boundary or phrase check
-    const escaped = cleanTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(^|\\b|\\s)${escaped}(\\b|\\s|$)`, "i");
-    if (regex.test(combined)) {
-      return true;
-    }
-  }
-  return false;
-}
 
 /** Official municipality code for Gothenburg */
 const GOTEBORG_MUNICIPALITY = "1480";
@@ -193,16 +139,14 @@ export async function searchJobTech(
     url.searchParams.set("q", params.query.trim());
   }
 
-  // Occupation field filter (e.g. Data/IT)
-  if (params.occupationField) {
-    url.searchParams.set("occupation-field", params.occupationField);
-  }
-
-  // Occupation groups filter (e.g. Mjukvaru- och systemutvecklare m.fl.)
+  // Occupation taxonomy filter: JobTech ORs occupation-field and occupation-group together,
+  // so only send occupation-field when no narrower occupationGroups are specified.
   if (params.occupationGroups && params.occupationGroups.length > 0) {
     params.occupationGroups.forEach((group) => {
       url.searchParams.append("occupation-group", group);
     });
+  } else if (params.occupationField) {
+    url.searchParams.set("occupation-field", params.occupationField);
   }
 
   // Location filter
