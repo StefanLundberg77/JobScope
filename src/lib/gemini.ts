@@ -365,6 +365,10 @@ BEDÖMNINGSPRINCIP FÖR MATCHNING & ATS-SCORING (INGA GLÄDJEKALKYLER):
 * Var fullständigt objektiv, saklig och sträng. Sätt ALDRIG uppblåsta glädjebetyg.
 * Kandidaten är en mjukvaruingenjör/utvecklare och söker uteslutande utvecklings- och ingenjörsroller.
 * Skilj stenhårt mellan faktisk bevisad yrkeserfarenhet under relevant utvecklartitel kontra teoretisk/projektbaserad kunskap eller överförbara ledarskapsmeriter.
+* ANTI-ÖVERDRIFTSREGEL (OMFATTNING & NIVÅ):
+  - En enstaka fristående högskolekurs (t.ex. "Högskolekurs" / "Fristående högskolekurs") får ALDRIG beskrivas som en "utbildning", "utbildningsbakgrund" eller "skolning", och får ALDRIG listas under strongMatches.
+  - Blanda ALDRIG ihop restaurangdrift/gästkontakt med formell IT-användarsupport eller felsökning i egna mjukvaruprojekt med formella supportärenden/servicedesk.
+  - Skilj tydligt på vad kandidaten faktiskt gjort vs. vad som är saknade nyckelord (placera saknade domänkrav i missingKeywords).
 
 STRIKT POÄNGSKALA & KALIBRERING (0-100):
 * 85–100% (Exceptionell direktmatchning):
@@ -512,9 +516,21 @@ export async function tailorApplicationWithAI(
 You are a senior technical recruiter and career advisor specializing in the global IT and software engineering market.
 Task: Translate and tailor the candidate's Master-CV into professional English technical terminology, and author a concise, high-impact Cover Letter specifically for the job posting below.
 
-STRICT ETHICAL RULES (TRUTH BARRIER):
+STRICT ETHICAL RULES (TRUTH BARRIER & ANTI-EXAGGERATION):
 1. NEVER fabricate employers, degrees, fake projects, certifications, or employment dates not present in the candidate's Master-CV.
 2. All tailoring must be strictly grounded in real achievements and demonstrated skills.
+3. STRICT SCOPE & CREDENTIAL INTEGRITY (NO INFLATION):
+   - A single standalone university course (e.g., "Högskolekurs" / "Fristående högskolekurs" such as Lärandeteorier och yrkeskunnande) must NEVER be upgraded into a "degree", "educational background", "pedagogical education", or "formal training in X".
+   - NEVER mention or highlight a single standalone introductory course in tailoredSummary, emailBody, or matchAnalysis.strongMatches. Only keep it in its factual place under education if relevant, strictly preserving its actual scope ("single university course").
+4. STRICT SKILL WHITELIST (tailoredSkills & tailoredExperiences.skills):
+   - You may ONLY select, group, reorder, and accurately translate (SV -> EN) skills that ALREADY EXIST in the candidate's Master-CV (skills, experiences[].skills, or projects[].techStack).
+   - NEVER invent, synthesize, or inject new job-ad keywords or domain labels into tailoredSkills or tailoredExperiences.skills that are absent from Master-CV (e.g., do NOT add "Customer Training & Workshops", "Pedagogy & Mentoring", "Application Configuration", "User Support", or "Troubleshooting & Support" if they do not exist in Master-CV).
+5. NO DOMAIN DRIFT OR ROLE REBRANDING:
+   - NEVER rebrand debugging in personal/LIA software projects as formal "IT support tickets" or "customer support cases".
+   - NEVER rebrand restaurant management or guest service as "User Support" or "IT Customer Support" — always preserve the honest source context (operational management, staff onboarding, team leadership, and guest service).
+   - NEVER invent a new professional title in tailoredSummary (e.g., "Application Specialist" or "Application Developer") that does not reflect the candidate's actual Master-CV profile.
+6. TRANSPARENT DIFF NOTES:
+   - In diffNotes, explicitly note any prominent job-ad requirements or keywords that were intentionally omitted/not claimed to avoid overstating the candidate's background.
 
 INTERNATIONAL TECH TONE & ANTI-FLUFF STANDARD:
 International tech hiring leads and engineering managers value confidence, clarity, strong action verbs, and impact over corporate buzzwords. Follow these principles strictly:
@@ -628,13 +644,13 @@ Respond EXACTLY with this JSON schema (all string values translated into English
         "Action-verb bullet 1 (e.g. 'Architected core gameplay and procedural systems in C#...')",
         "Action-verb bullet 2"
       ],
-      "skills": ["Relevant technologies prioritized for the ad"]
+      "skills": ["ONLY existing technologies/skills from Master-CV prioritized for the ad; NEVER invent new labels"]
     }
   ],
   "tailoredSkills": [
     {
       "category": "Category Name in English (e.g. Programming Languages, Backend & Frameworks, Cloud & DevOps)",
-      "items": ["Skills prioritized with the ad's most desired first"]
+      "items": ["ONLY existing skills from Master-CV translated/prioritized with the ad's most desired first; NEVER invent new skills"]
     }
   ],
   "coverLetter": "Full English cover letter formatted with greeting, paragraphs, and closing. Confident, direct, impact-driven, and completely free from AI fluff.",
@@ -642,9 +658,9 @@ Respond EXACTLY with this JSON schema (all string values translated into English
   "emailBody": "Stripped-down, authentic developer application email (3-4 sentences, no buzzwords, referencing attached CV and letter)",
   "diffNotes": [
     {
-      "section": "Summary / Experience X / Skills",
-      "change": "Brief description of the translation/tailoring change",
-      "rationale": "Why this change optimizes appeal for this specific employer"
+      "section": "Summary / Experience X / Skills / Omitted Requirements",
+      "change": "Brief description of the tailoring change or intentionally omitted ad requirement",
+      "rationale": "Why this change optimizes appeal or prevents overstating credentials"
     }
   ],
   "matchAnalysis": {
@@ -663,9 +679,21 @@ Respond EXACTLY with this JSON schema (all string values translated into English
 Du är en senior svensk tech-rekryterare och karriärrådgivare specialiserad på IT- och mjukvarubranschen.
 Uppgift: Skräddarsy kandidatens CV och författa ett jordnära, genuint och knivskarpt personligt brev specifikt för nedanstående jobbannons.
 
-STRIKTA ETISKA REGLER (SANNINGSBARRIÄR):
+STRIKTA ETISKA REGLER (SANNINGSBARRIÄR & ANTI-ÖVERDRIFT):
 1. Du får ALDRIG hitta på arbetsgivare, utbildningar, fiktiva projekt, certifieringar eller anställningsdatum som inte finns i kandidatens Master-CV.
 2. All anpassning ska bygga på verkliga meriter och genuint bevisade färdigheter.
+3. STRIKT OMFATTNINGS- & NIVÅINTEGRITET (INGEN UPPBLÅSNING AV MERITER):
+   - En enstaka fristående högskolekurs (t.ex. "Högskolekurs" / "Fristående högskolekurs" som Lärandeteorier och yrkeskunnande) får ALDRIG omskrivas eller uppgraderas till "utbildning", "pedagogisk utbildning", "utbildningsbakgrund" eller "teoretisk skolning".
+   - En fristående introduktionskurs får ALDRIG lyftas fram i tailoredSummary (CV-pitchen), emailBody eller matchAnalysis.strongMatches. Om den nämns överhuvudtaget får den enbart anges sakligt med sin faktiska omfattning ("enstaka fristående kurs").
+4. STRIKT VITLISTA FÖR KOMPETENSER (tailoredSkills & tailoredExperiences.skills):
+   - Du får ENDAST välja, gruppera och prioritera kompetenser som FAKTISKT FINNS i kandidatens Master-CV (under skills, experiences[].skills eller projects[].techStack).
+   - Det är STRIKT FÖRBJUDET att uppfinna eller lägga till nya nyckelord/etiketter från jobbannonsen i tailoredSkills eller tailoredExperiences.skills som inte finns i Master-CV (t.ex. hitta ALDRIG på "Kundutbildning & Workshops", "Pedagogik & Handledning", "Applikationskonfigurering", "Användarsupport" eller "Felsökning & Support").
+5. INGEN DOMÄNGLIDNING ELLER ROLLOMSKRIVNING:
+   - Omskriv ALDRIG teknisk felsökning i egna mjukvaruprojekt till "supportärenden", "IT-support" eller formell servicedesk.
+   - Omskriv ALDRIG restaurangdrift, gästbemötande eller personalupplärning till "Användarsupport" eller "IT-kundsupport" – håll alltid källkontexten ärlig och tydlig (operativ drift, personalledning, upplärning av personal och gästbemötande).
+   - Hitta ALDRIG på en ny yrkestitel i tailoredSummary (t.ex. "Applikationsutvecklare" eller "Applikationsspecialist") som avviker från kandidatens faktiska profil.
+6. TRANSPARENTA DIFF-NOTERINGAR (diffNotes):
+   - Ange uttryckligen i diffNotes om viktiga nyckelord eller krav i jobbannonsen avsiktligt utelämnades för att inte överdriva kandidatens meriter (t.ex. formell utbildning, workshops, support eller domänspecifika regelverk).
 
 STRIKTA REGLER FÖR TONALITET & SPRÅK (ANTI-FLUFF & INGEN SMÖRIGHET):
 Svensk IT- och techkultur (CTO:s, tech-leads och rekryterare) föredrar autenticitet, rakhet och teknisk substans framför amerikansk "corporate fluff" och inställsamhet. Följ dessa principer stenhårt:
@@ -777,13 +805,13 @@ Svara EXAKT med detta JSON-schema:
         "Optimerad punkt 1 med fokus på relevanta tekniska resultat och nyckelord",
         "Optimerad punkt 2"
       ],
-      "skills": ["Relevanta teknologier i prioriterad ordning"]
+      "skills": ["ENDAST befintliga teknologier/kompetenser från Master-CV i prioriterad ordning; hitta ALDRIG på nya etiketter"]
     }
   ],
   "tailoredSkills": [
     {
       "category": "Kategori",
-      "items": ["Kompetenser sorterade med annonsens mest eftertraktade först"]
+      "items": ["ENDAST befintliga kompetenser från Master-CV sorterade med annonsens mest eftertraktade först; hitta ALDRIG på nya kompetenser"]
     }
   ],
   "coverLetter": "Fullständigt personligt brev formaterat i stycken med hälsningsfras och avslutning. Jordnära, konkret, genuint och fritt från klyschor och AI-smör.",
@@ -791,9 +819,9 @@ Svara EXAKT med detta JSON-schema:
   "emailBody": "Avskalat och jordnära ansökningsmejl (3-4 meningar, noll floskler, hänvisning till bifogat CV och brev)",
   "diffNotes": [
     {
-      "section": "Sammanfattning / Erfarenhet X / Färdigheter",
-      "change": "Kort beskrivning av ändringen",
-      "rationale": "Varför denna förändring förbättrar chanserna hos denna specifika arbetsgivare"
+      "section": "Sammanfattning / Erfarenhet X / Färdigheter / Utelämnade krav",
+      "change": "Kort beskrivning av ändringen eller annonskrav som avsiktligt utelämnats",
+      "rationale": "Varför denna ändring förbättrar chanserna eller förhindrar överdrifter"
     }
   ],
   "matchAnalysis": {

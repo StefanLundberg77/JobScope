@@ -144,11 +144,12 @@ const profileData = {
     {
       id: "edu-2",
       school: "Göteborgs universitet",
-      degree: "Högskolekurs",
+      degree: "Fristående högskolekurs",
       fieldOfStudy: "Lärandeteorier och yrkeskunnande",
       startDate: "2021",
       endDate: "2021",
-      description: "Pedagogik, handledning och kommunikation."
+      description:
+        "Grundläggande introduktionskurs i lärandeteorier (enstaka kurs, ej fullständig pedagogisk utbildning)."
     }
   ],
   skills: [

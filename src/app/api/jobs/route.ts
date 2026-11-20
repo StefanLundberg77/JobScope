@@ -9,17 +9,21 @@ import { fetchJobTechAd, normalizeJobTechWorkplaceModel } from "@/lib/jobtech";
 import { fetchAndParseJobUrl, parseJobAdText } from "@/lib/parser";
 import { isLinkedInUrl, fetchLinkedInJobDetails } from "@/lib/linkedin";
 import { analyzeJobMatchWithAI, getGeminiApiKey } from "@/lib/gemini";
+import { matchesJobQuery } from "@/lib/jobSearch";
 import { MasterProfileData } from "@/lib/types";
 
 /**
  * GET /api/jobs
- * Retrieves all saved job listings, optionally filtered by application status.
+ * Retrieves all saved job listings, optionally filtered by application status
+ * and free-text / URL search query (`q`, `includeDescription`).
  * Deserializes SQLite JSON strings into strongly typed arrays and objects.
  */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const query = searchParams.get("q")?.trim() || "";
+    const includeDescription = searchParams.get("includeDescription") === "true";
 
     const jobs = await prisma.jobListing.findMany({
       where: status ? { status } : undefined,
@@ -32,7 +36,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const parsedJobs = jobs.map((job) => ({
+    let parsedJobs = jobs.map((job) => ({
       ...job,
       requiredSkills: JSON.parse(job.requiredSkills || "[]"),
       preferredSkills: JSON.parse(job.preferredSkills || "[]"),
@@ -44,6 +48,12 @@ export async function GET(req: Request) {
         diffNotes: app.diffNotes ? JSON.parse(app.diffNotes) : [],
       })),
     }));
+
+    if (query) {
+      parsedJobs = parsedJobs.filter((job) =>
+        matchesJobQuery(job, query, { includeDescription })
+      );
+    }
 
     return NextResponse.json(parsedJobs);
   } catch (error: unknown) {

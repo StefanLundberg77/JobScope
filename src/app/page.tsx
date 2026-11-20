@@ -161,7 +161,10 @@ export default function Home() {
         )}
 
         {currentTab === "import" && (
-          <CustomJobModal onJobSaved={handleJobSaved} />
+          <CustomJobModal
+            onJobSaved={handleJobSaved}
+            onOpenExistingJob={(jobId) => handleOpenTailorStudio(jobId, false)}
+          />
         )}
 
         {currentTab === "tracker" && (
